@@ -68,11 +68,11 @@ envName env name
 prettyPrintHelper :: NameEnv -> Term -> String
 prettyPrintHelper env (Var i) = lookupIndex env i
 prettyPrintHelper _ (Universe k) = "Type " ++ show k
-prettyPrintHelper env (Pi s) = "forall " ++ prettyname ++ " : " ++ prettyty ++ ", " ++ prettybody
+prettyPrintHelper env (Pi s) = "(forall " ++ prettyname ++ " : " ++ prettyty ++ ", " ++ prettybody ++ ")"
   where (prettyname, prettyty, prettybody) = prettyPrintHelperScope env s
-prettyPrintHelper env (Lambda s) = "fun " ++ prettyname ++ " : " ++ prettyty ++ " => " ++ prettybody
+prettyPrintHelper env (Lambda s) = "(fun " ++ prettyname ++ " : " ++ prettyty ++ " => " ++ prettybody ++ ")"
   where (prettyname, prettyty, prettybody) = prettyPrintHelperScope env s
-prettyPrintHelper env (App t1 t2) = "(" ++ prettyPrintHelper env t1 ++ ") (" ++ prettyPrintHelper env t2 ++ ")"
+prettyPrintHelper env (App t1 t2) = prettyPrintHelper env t1 ++ " " ++ prettyPrintHelper env t2
 
 prettyPrintHelperScope :: NameEnv -> Scope -> (String, String, String)
 prettyPrintHelperScope env (Scope rawname ty body) = (prettyname, prettyty, prettybody)
