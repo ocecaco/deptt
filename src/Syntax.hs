@@ -1,4 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
 module Syntax (Term(..), Scope(..), substitute, scopeApply, prettyPrint) where
 
 -- TODO: Add credits to Andrej Bauer for some of the code that is
@@ -11,7 +10,13 @@ data Term = Var Int -- de Bruijn index, also stores the original variable name f
           deriving (Eq, Ord, Show)
 
 data Scope = Scope String Term Term
-           deriving (Eq, Ord, Show)
+           deriving (Ord, Show)
+
+-- names of bound variables are ignored during equality comparison
+-- since we are using de Bruijn indices (although the name does get
+-- used for pretty printing)
+instance Eq Scope where
+  Scope _ t1left t2left == Scope _ t1right t2right = t1left == t1right && t2left == t2right
 
 -- whether a variable is shifted depends on whether its index reached
 -- outside of the bound variables (into the free variables)
