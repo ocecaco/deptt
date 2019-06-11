@@ -1,5 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-module TypeCheck (typeCheck) where
+module TypeCheck (typeCheck, normalize) where
 
 import Syntax (Term(..), Scope(..), scopeApply)
 import Control.Monad.Except (ExceptT, MonadError(..), runExceptT)
@@ -67,6 +67,8 @@ checkEqual e1 e2
   | normalize e1 == normalize e2 = return ()
   | otherwise = typeError "type mismatch"
 
+-- TODO: what happens during normalization of ill-typed terms? can we
+-- be sure that this function is never given an ill-typed term?
 normalize :: Term -> Term
 normalize tm@(Var _) = tm
 normalize tm@(Universe _) = tm
