@@ -34,12 +34,12 @@ inferType (Pi (Binder _ ty body)) = do
   k1 <- inferUniverse ty
   k2 <- withContext ty (inferUniverse body)
   return (Universe (max k1 k2))
-inferType (Lambda (Binder _ ty body)) = do
+inferType (Lambda (Binder name ty body)) = do
   -- although we do not use the universe of the type, we still have to
   -- make sure it is well-typed itself
   _univ <- inferUniverse ty
   tybody <- withContext ty (inferType body)
-  return (Pi (Binder Nothing ty tybody)) -- TODO: should this name really be a dummy?
+  return (Pi (Binder name ty tybody)) -- TODO: should this name really be a dummy?
 
 -- here, we check if the type of the argument matches the type
 -- expected by the function. the type of the result is then obtained by
