@@ -1,7 +1,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module TypeCheck (typeCheck, normalize) where
 
-import Debug.Trace (traceShowM, traceM)
 import Syntax (Term(..), Binder(..), scopeApply, shift)
 import Control.Monad.Except (ExceptT, MonadError(..), runExceptT)
 import Control.Monad.Reader (ReaderT, MonadReader(..), runReaderT)
@@ -30,12 +29,7 @@ lookupType idx = TC $ do
   return (ctxt !! idx)
 
 inferType :: Term -> TC Term
-inferType (Var i) = do
-  ty <- lookupType i
-  let shifted = shift (i + 1) ty
-  traceShowM ty
-  traceShowM shifted
-  return shifted
+inferType (Var i) = shift (i + 1) <$> lookupType i
 
 inferType (Universe k) = return (Universe (k + 1))
 inferType (Pi (Binder _ ty body)) = do
@@ -56,7 +50,6 @@ inferType (App e1 e2) = do
   scope@(Binder _ tyexpect _) <- inferPi e1
   tyarg <- inferType e2
   checkEqual tyexpect tyarg
-  traceM $ "Scope apply: " ++ show scope ++ ", " ++ show e2 ++ ", " ++ show (scopeApply scope e2)
   return (scopeApply scope e2)
 
 typeError :: TypeError -> TC a
