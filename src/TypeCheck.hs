@@ -1,7 +1,8 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module TypeCheck (typeCheck, normalize) where
 
-import Syntax (Term(..), Binder(..), scopeApply)
+import Debug.Trace (traceShowM, traceM)
+import Syntax (Term(..), Binder(..), scopeApply, shift)
 import Control.Monad.Except (ExceptT, MonadError(..), runExceptT)
 import Control.Monad.Reader (ReaderT, MonadReader(..), runReaderT)
 import Control.Monad.Identity (Identity, runIdentity)
@@ -14,6 +15,9 @@ type Context = [Term]
 newtype TC a = TC { runTC :: ExceptT TypeError (ReaderT Context Identity) a }
              deriving (Functor, Applicative, Monad)
 
+getContext :: TC Context
+getContext = TC ask
+
 extendContext :: Term -> Context -> Context
 extendContext tm ctxt = tm : ctxt
 
@@ -25,10 +29,14 @@ lookupType idx = TC $ do
   ctxt <- ask
   return (ctxt !! idx)
 
--- TODO: Maybe introduce newtype to make it harder to forget the
--- withContext wrappers when type checking the body of a scope
 inferType :: Term -> TC Term
-inferType (Var i) = lookupType i
+inferType (Var i) = do
+  ty <- lookupType i
+  let shifted = shift (i + 1) ty
+  traceShowM ty
+  traceShowM shifted
+  return shifted
+
 inferType (Universe k) = return (Universe (k + 1))
 inferType (Pi (Binder _ ty body)) = do
   k1 <- inferUniverse ty
@@ -48,6 +56,7 @@ inferType (App e1 e2) = do
   scope@(Binder _ tyexpect _) <- inferPi e1
   tyarg <- inferType e2
   checkEqual tyexpect tyarg
+  traceM $ "Scope apply: " ++ show scope ++ ", " ++ show e2 ++ ", " ++ show (scopeApply scope e2)
   return (scopeApply scope e2)
 
 typeError :: TypeError -> TC a
@@ -65,7 +74,9 @@ inferUniverse tm = do
 checkEqual :: Term -> Term -> TC ()
 checkEqual e1 e2
   | normalize e1 == normalize e2 = return ()
-  | otherwise = typeError ("type mismatch between " ++ show e1 ++ " and " ++ show e2)
+  | otherwise = do
+      ctxt <- getContext
+      typeError ("type mismatch between " ++ show e1 ++ " and " ++ show e2 ++ " in context " ++ show ctxt)
 
 -- TODO: what happens during normalization of ill-typed terms? can we
 -- be sure that this function is never given an ill-typed term?

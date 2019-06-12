@@ -1,4 +1,4 @@
-module Syntax (Term(..), Binder(..), substitute, scopeApply, prettyPrint) where
+module Syntax (Term(..), Binder(..), substitute, scopeApply, prettyPrint, shift) where
 
 import Data.Maybe (fromMaybe, fromJust)
 
