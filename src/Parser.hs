@@ -1,7 +1,7 @@
 {-# LANGUAGE EmptyDataDeriving #-}
-module Parser (convertToDeBruijn, Term(..), Binder(..)) where
+module Parser (convertToDeBruijn, Term(..), Binder(..), parseTerm) where
 
-import Text.Megaparsec (Parsec, try, notFollowedBy, between, eof)
+import Text.Megaparsec (Parsec, try, notFollowedBy, between, eof, parse)
 import Text.Megaparsec.Char (space1, string, letterChar, alphaNumChar, char)
 import qualified Text.Megaparsec.Char.Lexer as L
 import Control.Applicative (many, (<|>))
@@ -115,3 +115,8 @@ convertToDeBruijn = go []
 
         goScope :: [Maybe String] -> Binder -> S.Binder
         goScope env (Binder name ty body) = S.Binder name (go env ty) (go (name:env) body)
+
+parseTerm :: String -> Either String S.Term
+parseTerm source = case parse term "<interactive>" source of
+  Left _ -> Left "parse error"
+  Right t -> Right (convertToDeBruijn t)
