@@ -103,6 +103,7 @@ lambda = do
   body <- term
   pure (Lambda (Binder name ty body))
 
+-- TODO: Handle scoping errors
 convertToDeBruijn :: Term -> S.Term
 convertToDeBruijn = go []
   where go :: [Maybe String] -> Term -> S.Term

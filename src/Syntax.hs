@@ -73,8 +73,6 @@ envName env name
   where c = count (Just name) env
 
 prettyPrintHelper :: NameEnv -> Term -> String
--- it shouldn't be possible to refer to a nameless variable with a de
--- Bruijn index, hence the use of fromJust
 prettyPrintHelper env (Var i) = fromJust (lookupIndex env i)
 prettyPrintHelper _ (Universe k) = "Type " ++ show k
 prettyPrintHelper env (Pi s) =

@@ -49,3 +49,6 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - deptt
+    - HUnit
+    - tasty
+    - tasty-hunit
