@@ -1,7 +1,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module TypeCheck (typeCheck, normalize) where
 
-import Syntax (Term(..), Scope(..), scopeApply)
+import Syntax (Term(..), Binder(..), scopeApply)
 import Control.Monad.Except (ExceptT, MonadError(..), runExceptT)
 import Control.Monad.Reader (ReaderT, MonadReader(..), runReaderT)
 import Control.Monad.Identity (Identity, runIdentity)
@@ -18,7 +18,7 @@ extendContext :: Term -> Context -> Context
 extendContext tm ctxt = tm : ctxt
 
 withContext :: Term -> TC a -> TC a
-withContext tm (TC act) = TC $ local (\ctxt -> extendContext tm ctxt) act
+withContext tm (TC act) = TC $ local (extendContext tm) act
 
 lookupType :: Int -> TC Term
 lookupType idx = TC $ do
@@ -30,22 +30,22 @@ lookupType idx = TC $ do
 inferType :: Term -> TC Term
 inferType (Var i) = lookupType i
 inferType (Universe k) = return (Universe (k + 1))
-inferType (Pi (Scope _ ty body)) = do
+inferType (Pi (Binder _ ty body)) = do
   k1 <- inferUniverse ty
   k2 <- withContext ty (inferUniverse body)
   return (Universe (max k1 k2))
-inferType (Lambda (Scope _ ty body)) = do
+inferType (Lambda (Binder _ ty body)) = do
   -- although we do not use the universe of the type, we still have to
   -- make sure it is well-typed itself
   _univ <- inferUniverse ty
   tybody <- withContext ty (inferType body)
-  return (Pi (Scope "dummy" ty tybody))
+  return (Pi (Binder Nothing ty tybody)) -- TODO: should this name really be a dummy?
 
 -- here, we check if the type of the argument matches the type
 -- expected by the function. the type of the result is then obtained by
 -- substituting the argument term into the pi-type.
 inferType (App e1 e2) = do
-  scope@(Scope _ tyexpect _) <- inferPi e1
+  scope@(Binder _ tyexpect _) <- inferPi e1
   tyarg <- inferType e2
   checkEqual tyexpect tyarg
   return (scopeApply scope e2)
@@ -65,7 +65,7 @@ inferUniverse tm = do
 checkEqual :: Term -> Term -> TC ()
 checkEqual e1 e2
   | normalize e1 == normalize e2 = return ()
-  | otherwise = typeError "type mismatch"
+  | otherwise = typeError ("type mismatch between " ++ show e1 ++ " and " ++ show e2)
 
 -- TODO: what happens during normalization of ill-typed terms? can we
 -- be sure that this function is never given an ill-typed term?
@@ -82,10 +82,10 @@ normalize (Pi scope) = Pi (normalizeScope scope)
 normalize (Lambda scope) = Lambda (normalizeScope scope)
 
 -- TODO: context isn't extended for the body, is that okay?
-normalizeScope :: Scope -> Scope
-normalizeScope (Scope name ty body) = Scope name (normalize ty) (normalize body)
+normalizeScope :: Binder -> Binder
+normalizeScope (Binder name ty body) = Binder name (normalize ty) (normalize body)
 
-inferPi :: Term -> TC Scope
+inferPi :: Term -> TC Binder
 inferPi tm = do
   ty <- inferType tm
   case normalize ty of

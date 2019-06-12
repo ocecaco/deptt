@@ -1,8 +1,8 @@
 {-# LANGUAGE EmptyDataDeriving #-}
-module Parser (convertToDeBruijn, RawTerm(..), RawScope(..)) where
+module Parser (convertToDeBruijn, Term(..), Binder(..)) where
 
 import Text.Megaparsec (Parsec, try, notFollowedBy, between, eof)
-import Text.Megaparsec.Char (space1, string, letterChar, alphaNumChar)
+import Text.Megaparsec.Char (space1, string, letterChar, alphaNumChar, char)
 import qualified Text.Megaparsec.Char.Lexer as L
 import Control.Applicative (many, (<|>))
 import qualified Syntax as S
@@ -10,13 +10,13 @@ import Data.List (elemIndex)
 import Data.Maybe (fromJust)
 import Control.Monad (void)
 
-data RawTerm = Var String
-             | Universe Int
-             | Pi RawScope
-             | Lambda RawScope
-             | App RawTerm RawTerm
+data Term = Var String
+          | Universe Int
+          | Pi Binder
+          | Lambda Binder
+          | App Term Term
 
-data RawScope = RawScope String RawTerm RawTerm
+data Binder = Binder (Maybe String) Term Term
 
 -- uninhabited type
 data Void deriving (Eq, Ord)
@@ -45,60 +45,72 @@ rword w = lexeme (try (string w *> notFollowedBy alphaNumChar))
 reservedWords :: [String]
 reservedWords = ["fun", "forall", "Type"]
 
+maybeident :: Parser (Maybe String)
+maybeident = dummy
+         <|> (Just <$> identifier)
+  where dummy = char '_' *> pure Nothing
+
 identifier :: Parser String
-identifier = lexeme (try (p >>= check))
-  where p = (:) <$> letterChar <*> many alphaNumChar
+identifier = lexeme (try (name >>= check))
+  where name = (:) <$> letterChar <*> many alphaNumChar
         check x = if x `elem` reservedWords
                   then fail $ "keyword " ++ show x ++ " cannot be used as an identifier"
                   else return x
 
-progParser :: Parser RawTerm
+progParser :: Parser Term
 progParser = between sc eof term
 
-term :: Parser RawTerm
+term :: Parser Term
 term = undefined
 
-term' :: Parser RawTerm
+term' :: Parser Term
 term' = universe
     <|> var
     <|> piType
     <|> lambda
     <|> parens term
 
-universe :: Parser RawTerm
+universe :: Parser Term
 universe = Universe <$> (rword "Type" *> L.decimal)
 
-var :: Parser RawTerm
+var :: Parser Term
 var = Var <$> identifier
 
-piType :: Parser RawTerm
+piType :: Parser Term
 piType = do
   rword "forall"
-  name <- identifier
+  name <- maybeident
   symbol ":"
   ty <- term
   symbol ","
   body <- term
-  pure (Pi (RawScope name ty body))
+  pure (Pi (Binder name ty body))
 
-lambda :: Parser RawTerm
+arrowType :: Parser Term
+arrowType = do
+  left <- term
+  symbol "->"
+  right <- term
+  pure (Pi (Binder Nothing left right))
+
+lambda :: Parser Term
 lambda = do
   rword "fun"
-  name <- identifier
+  name <- maybeident
   symbol ":"
   ty <- term
   symbol "=>"
   body <- term
-  pure (Lambda (RawScope name ty body))
+  pure (Lambda (Binder name ty body))
 
-convertToDeBruijn :: RawTerm -> S.Term
+convertToDeBruijn :: Term -> S.Term
 convertToDeBruijn = go []
-  where go :: [String] -> RawTerm -> S.Term
-        go env (Var name) = S.Var (fromJust (elemIndex name env))
+  where go :: [Maybe String] -> Term -> S.Term
+        go env (Var name) = S.Var (fromJust (elemIndex (Just name) env))
         go _ (Universe k) = S.Universe k
         go env (Pi rawScope) = S.Pi (goScope env rawScope)
         go env (Lambda rawScope) = S.Lambda (goScope env rawScope)
         go env (App t1 t2) = S.App (go env t1) (go env t2)
 
-        goScope :: [String] -> RawScope -> S.Scope
-        goScope env (RawScope name ty body) = S.Scope name (go env ty) (go (name:env) body)
+        goScope :: [Maybe String] -> Binder -> S.Binder
+        goScope env (Binder name ty body) = S.Binder name (go env ty) (go (name:env) body)
