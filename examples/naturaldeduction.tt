@@ -1,0 +1,12 @@
+fun ind : Type 0 =>
+fun prop : Type 0 =>
+fun imp : prop -> prop -> prop =>
+
+fun proof : prop -> Type 0 =>
+fun impelim : forall P : prop, forall Q : prop, proof (imp P Q) -> proof P -> proof Q =>
+fun impintro : forall P : prop, forall Q : prop, (proof P -> proof Q) -> proof (imp P Q) =>
+
+fun P : prop =>
+fun proofP : proof P =>
+
+impelim P P (impintro P P (fun x : proof P => x)) proofP
