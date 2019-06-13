@@ -83,7 +83,7 @@ prettyPrintHelper env (Pi s) =
 prettyPrintHelper env (Lambda s) = "(fun " ++ prettyname ++ " : " ++ prettyty ++ " => " ++ prettybody ++ ")"
   where (maybename, prettyty, prettybody) = prettyPrintHelperScope env s
         prettyname = fromMaybe "_" maybename
-prettyPrintHelper env (App t1 t2) = prettyPrintHelper env t1 ++ " " ++ prettyPrintHelper env t2
+prettyPrintHelper env (App t1 t2) = "(" ++ prettyPrintHelper env t1 ++ " " ++ prettyPrintHelper env t2 ++ ")"
 
 prettyPrintHelperScope :: NameEnv -> Binder -> (Maybe String, String, String)
 prettyPrintHelperScope env (Binder rawname ty body) = (prettyname, prettyty, prettybody)
