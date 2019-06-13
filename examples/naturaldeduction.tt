@@ -1,12 +1,17 @@
 fun ind : Type 0 =>
+
 fun prop : Type 0 =>
+
 fun imp : prop -> prop -> prop =>
+fun all : (ind -> prop) -> prop =>
 
 fun proof : prop -> Type 0 =>
+
 fun impelim : forall P : prop, forall Q : prop, proof (imp P Q) -> proof P -> proof Q =>
 fun impintro : forall P : prop, forall Q : prop, (proof P -> proof Q) -> proof (imp P Q) =>
+fun allintro : forall P : ind -> prop, (forall x : ind, proof (P x)) -> proof (all P) =>
+fun allelim : forall P : ind -> prop, proof (all P) -> forall x : ind, proof (P x) =>
 
-fun P : prop =>
-fun proofP : proof P =>
+fun prime : ind -> prop =>
 
-impelim P P (impintro P P (fun x : proof P => x)) proofP
+allintro (fun x : ind => imp (prime x) (prime x)) (fun x : ind => impintro (prime x) (prime x) (fun x : proof (prime x) => x))
