@@ -16,7 +16,14 @@ data Term = Var Int -- de Bruijn index, also stores the original variable name f
 data Binder = Binder String Term Term
            deriving (Ord, Show)
 
-data Builtin = Nat | Zero | Succ | NatElim
+data Builtin = Nat
+             | Zero
+             | Succ
+             | NatElim
+
+             | Eq
+             | Refl
+             | EqElim
              deriving (Eq, Ord, Show)
 
 -- names of bound variables are ignored during equality comparison
@@ -97,6 +104,9 @@ prettyPrintBuiltin Nat = "nat"
 prettyPrintBuiltin Zero = "zero"
 prettyPrintBuiltin Succ = "succ"
 prettyPrintBuiltin NatElim = "natelim"
+prettyPrintBuiltin Eq = "eq"
+prettyPrintBuiltin Refl = "refl"
+prettyPrintBuiltin EqElim = "eqelim"
 
 prettyPrintHelperScope :: NameEnv -> Binder -> (Bool, String, String, String)
 prettyPrintHelperScope env (Binder rawname ty body) = (occ, prettyname, prettyty, prettybody)

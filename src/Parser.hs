@@ -78,6 +78,9 @@ builtin "nat" = Just S.Nat
 builtin "zero" = Just S.Zero
 builtin "succ" = Just S.Succ
 builtin "natelim" = Just S.NatElim
+builtin "eq" = Just S.Eq
+builtin "refl" = Just S.Refl
+builtin "eqelim" = Just S.EqElim
 builtin _ = Nothing
 
 -- TODO: Maybe allow shadowing of builtins

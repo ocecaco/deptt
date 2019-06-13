@@ -37,6 +37,9 @@ builtinType = go
         go Zero = parseNoFail "nat"
         go Succ = parseNoFail "nat -> nat"
         go NatElim = parseNoFail "forall P : nat -> Type 0, P zero -> (forall n : nat, P n -> P (succ n)) -> forall n : nat, P n"
+        go Eq = parseNoFail "forall A : Type 0, A -> A -> Type 0"
+        go Refl = parseNoFail "forall A : Type 0, forall x : A, eq A x x"
+        go EqElim = parseNoFail "forall A : Type 0, forall x : A, forall P : A -> Type 0, P x -> forall y : A, eq A x y -> P y"
 
 inferType :: Term -> TC Term
 inferType (Var i) = shift (i + 1) <$> lookupType i
@@ -97,6 +100,7 @@ normalize tm@(Universe _) = tm
 normalize (App e1old e2old) = case e1norm of
     Lambda scope -> normalize (scopeApply scope e2norm)
     App (App (App (Builtin NatElim) nprop) nbase) nind -> normalizeNatElim nprop nbase nind e2norm
+    App (App (App (App (App (Builtin EqElim) _) _) _) h0) _ -> h0 -- the right-hand side (the equality proof itself) is ignored
     _ -> App e1norm e2norm
   where e2norm = normalize e2old
         e1norm = normalize e1old
