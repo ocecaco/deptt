@@ -59,7 +59,5 @@ typeCheckTests = testGroup "Type checking"
       tc (parseNoFail "Type 0") @?= (Right $ parseNoFail "Type 1")
   , testCase "Application" $
       tc (parseNoFail "fun A : Type 0 => fun B : Type 0 => fun f : A -> B => fun x : A => f x") @?= (Right $ parseNoFail "forall A : Type 0, forall B : Type 0, (A -> B) -> A -> B")
-  , testCase "Variable lookup" $
-      tc (parseNoFail "(fun id : Type 2 -> Type 2 => fun f : id (Type 1) -> Type 1 => f (Type 0)) (fun x : Type 2 => x)") @?= (Right $ parseNoFail "forall f : Type 1 -> Type 1, Type 1")
   ]
   where tc s = normalize <$> typeCheck s
