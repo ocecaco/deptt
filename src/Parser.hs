@@ -64,7 +64,7 @@ progParser = between sc eof term
 
 term :: Parser Term
 term = makeExprParser term'
-  [ [ InfixR (App <$ symbol "") ]
+  [ [ InfixL (App <$ symbol "") ]
   , [ InfixR (arrow <$ symbol "->") ] ]
   where arrow :: Term -> Term -> Term
         arrow t1 t2 = Pi (Binder Nothing t1 t2)

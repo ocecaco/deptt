@@ -15,6 +15,7 @@ tests :: TestTree
 tests = testGroup "Tests"
   [ parserTests
   , normalizeTests
+  , typeCheckTests
   ]
 
 lambda :: Term -> Term -> Term
@@ -35,6 +36,10 @@ parserTests = testGroup "Parser"
       parseTerm "fun x : Type 0 => fun y : Type 0 => x y" @?= Right (lambda (Universe 0) (lambda (Universe 0) (App (Var 1) (Var 0))))
   , testCase "Arrow type" $
       parseTerm "Type 0 -> Type 0" @?= Right (pi (Universe 0) (Universe 0))
+  , testCase "Left-associativity of application" $
+      parseTerm "(Type 0) (Type 1) (Type 2)" @?= Right (App (App (Universe 0) (Universe 1)) (Universe 2))
+  , testCase "Right-associativity of arrow" $
+      parseTerm "Type 0 -> Type 1 -> Type 2" @?= Right (pi (Universe 0) (pi (Universe 1) (Universe 2)))
   ]
 
 parse :: String -> Term
