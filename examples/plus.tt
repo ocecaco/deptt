@@ -1,0 +1,16 @@
+(
+fun plus : nat -> nat -> nat =>
+
+plus (succ (succ (succ zero))) (succ (succ (succ (succ zero))))
+)
+
+-- plus:
+(
+fun n : nat =>
+fun m : nat =>
+natelim
+(fun p : nat => nat)
+n
+(fun p : nat => succ)
+m
+)
