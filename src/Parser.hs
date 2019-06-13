@@ -1,14 +1,17 @@
 {-# LANGUAGE EmptyDataDeriving #-}
-module Parser (convertToDeBruijn, Term(..), Binder(..), parseTerm) where
+module Parser (convertToDeBruijn, Term(..), Binder(..), parseTerm, runParse) where
 
 import Text.Megaparsec (Parsec, try, notFollowedBy, between, eof, parse)
 import Text.Megaparsec.Char (space1, string, letterChar, alphaNumChar, char)
+import Text.Megaparsec.Error (ParseErrorBundle, errorBundlePretty)
+import Control.Monad.Combinators.Expr (Operator(..), makeExprParser)
 import qualified Text.Megaparsec.Char.Lexer as L
 import Control.Applicative (many, (<|>))
 import qualified Syntax as S
 import Data.List (elemIndex)
 import Data.Maybe (fromJust)
 import Control.Monad (void)
+import Data.Void (Void)
 
 data Term = Var String
           | Universe Int
@@ -18,10 +21,6 @@ data Term = Var String
 
 data Binder = Binder (Maybe String) Term Term
 
--- uninhabited type
-data Void deriving (Eq, Ord)
-
--- we use String for error messages
 type Parser = Parsec Void String
 
 -- partially based on https://markkarpov.com/megaparsec/parsing-simple-imperative-language.html
@@ -38,6 +37,9 @@ lexeme = L.lexeme sc
 
 symbol :: String -> Parser ()
 symbol x = L.symbol sc x >> pure ()
+
+integer :: Parser Int
+integer = lexeme L.decimal
 
 rword :: String -> Parser ()
 rword w = lexeme (try (string w *> notFollowedBy alphaNumChar))
@@ -61,7 +63,11 @@ progParser :: Parser Term
 progParser = between sc eof term
 
 term :: Parser Term
-term = undefined
+term = makeExprParser term'
+  [ [ InfixR (App <$ symbol "") ]
+  , [ InfixR (arrow <$ symbol "->") ] ]
+  where arrow :: Term -> Term -> Term
+        arrow t1 t2 = Pi (Binder Nothing t1 t2)
 
 term' :: Parser Term
 term' = universe
@@ -71,7 +77,7 @@ term' = universe
     <|> parens term
 
 universe :: Parser Term
-universe = Universe <$> (rword "Type" *> L.decimal)
+universe = Universe <$> (rword "Type" *> integer)
 
 var :: Parser Term
 var = Var <$> identifier
@@ -85,13 +91,6 @@ piType = do
   symbol ","
   body <- term
   pure (Pi (Binder name ty body))
-
-arrowType :: Parser Term
-arrowType = do
-  left <- term
-  symbol "->"
-  right <- term
-  pure (Pi (Binder Nothing left right))
 
 lambda :: Parser Term
 lambda = do
@@ -117,6 +116,11 @@ convertToDeBruijn = go []
         goScope env (Binder name ty body) = S.Binder name (go env ty) (go (name:env) body)
 
 parseTerm :: String -> Either String S.Term
-parseTerm source = case parse term "<interactive>" source of
-  Left _ -> Left "parse error"
+parseTerm source = case parse progParser "<interactive>" source of
+  Left errors -> Left $ "parse error:\n" ++ errorBundlePretty errors
   Right t -> Right (convertToDeBruijn t)
+
+runParse :: String -> IO ()
+runParse source = case parseTerm source of
+  Left e -> putStrLn e
+  Right t -> print t
