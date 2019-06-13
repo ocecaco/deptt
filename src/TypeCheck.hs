@@ -94,7 +94,7 @@ inferPi tm = do
   ty <- inferType tm
   case normalize ty of
     Pi s -> return s
-    _ -> typeError "expected pi"
+    _ -> typeError $ "expected pi, got " ++ show (normalize ty)
 
 typeCheck :: Term -> Either String Term
 typeCheck tm = runIdentity (runReaderT (runExceptT (runTC (inferType tm))) initialContext)

@@ -11,7 +11,7 @@ data Term = Var Int -- de Bruijn index, also stores the original variable name f
           | App Term Term
           deriving (Eq, Ord, Show)
 
-data Binder = Binder (Maybe String) Term Term
+data Binder = Binder String Term Term
            deriving (Ord, Show)
 
 -- names of bound variables are ignored during equality comparison
@@ -58,7 +58,7 @@ scopeApply :: Binder -> Term -> Term
 scopeApply (Binder _ _ abstraction) arg = shift (-1) (substitute 0 (shift 1 arg) abstraction)
 
 -- TODO: refactor to use Text instead of String
-type NameEnv = [Maybe String]
+type NameEnv = [String]
 
 lookupIndex :: [a] -> Int -> a
 lookupIndex = (!!)
@@ -70,26 +70,33 @@ envName :: NameEnv -> String -> String
 envName env name
   | c == 0 = name
   | otherwise = name ++ show c
-  where c = count (Just name) env
+  where c = count name env
 
 prettyPrintHelper :: NameEnv -> Term -> String
-prettyPrintHelper env (Var i) = fromJust (lookupIndex env i)
+prettyPrintHelper env (Var i) = lookupIndex env i
 prettyPrintHelper _ (Universe k) = "Type " ++ show k
 prettyPrintHelper env (Pi s) =
-  case maybename of
-    Nothing -> "(" ++ prettyty ++ " -> " ++ prettybody ++ ")"
-    Just prettyname -> "(forall " ++ prettyname ++ " : " ++ prettyty ++ ", " ++ prettybody ++ ")"
-  where (maybename, prettyty, prettybody) = prettyPrintHelperScope env s
+  if not occ
+  then "(" ++ prettyty ++ " -> " ++ prettybody ++ ")"
+  else "(forall " ++ prettyname ++ " : " ++ prettyty ++ ", " ++ prettybody ++ ")"
+  where (occ, prettyname, prettyty, prettybody) = prettyPrintHelperScope env s
 prettyPrintHelper env (Lambda s) = "(fun " ++ prettyname ++ " : " ++ prettyty ++ " => " ++ prettybody ++ ")"
-  where (maybename, prettyty, prettybody) = prettyPrintHelperScope env s
-        prettyname = fromMaybe "_" maybename
+  where (_, prettyname, prettyty, prettybody) = prettyPrintHelperScope env s
 prettyPrintHelper env (App t1 t2) = "(" ++ prettyPrintHelper env t1 ++ " " ++ prettyPrintHelper env t2 ++ ")"
 
-prettyPrintHelperScope :: NameEnv -> Binder -> (Maybe String, String, String)
-prettyPrintHelperScope env (Binder rawname ty body) = (prettyname, prettyty, prettybody)
-  where prettyname = fmap (envName env) rawname
+prettyPrintHelperScope :: NameEnv -> Binder -> (Bool, String, String, String)
+prettyPrintHelperScope env (Binder rawname ty body) = (occ, prettyname, prettyty, prettybody)
+  where prettyname = envName env rawname
         prettyty = prettyPrintHelper env ty
         prettybody = prettyPrintHelper (rawname:env) body
+        occ = occursVar 0 body
 
 prettyPrint :: Term -> String
 prettyPrint = prettyPrintHelper []
+
+occursVar :: Int -> Term -> Bool
+occursVar k (Var i) = k == i
+occursVar _ (Universe _) = False
+occursVar k (Pi (Binder _ t1 t2)) = occursVar k t1 || occursVar (k + 1) t2
+occursVar k (Lambda (Binder _ t1 t2)) = occursVar k t1 || occursVar (k + 1) t2
+occursVar k (App t1 t2) = occursVar k t1 || occursVar k t2

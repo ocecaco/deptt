@@ -1,16 +1,14 @@
-{-# LANGUAGE EmptyDataDeriving #-}
 module Parser (convertToDeBruijn, Term(..), Binder(..), parseTerm, runParse) where
 
 import Text.Megaparsec (Parsec, try, notFollowedBy, between, eof, parse)
-import Text.Megaparsec.Char (space1, string, letterChar, alphaNumChar, char)
-import Text.Megaparsec.Error (ParseErrorBundle, errorBundlePretty)
+import Text.Megaparsec.Char (space1, string, letterChar, alphaNumChar)
+import Text.Megaparsec.Error (errorBundlePretty)
 import Control.Monad.Combinators.Expr (Operator(..), makeExprParser)
 import qualified Text.Megaparsec.Char.Lexer as L
 import Control.Applicative (many, (<|>))
 import qualified Syntax as S
 import Data.List (elemIndex)
 import Data.Maybe (fromJust)
-import Control.Monad (void)
 import Data.Void (Void)
 
 data Term = Var String
@@ -19,7 +17,7 @@ data Term = Var String
           | Lambda Binder
           | App Term Term
 
-data Binder = Binder (Maybe String) Term Term
+data Binder = Binder String Term Term
 
 type Parser = Parsec Void String
 
@@ -47,11 +45,6 @@ rword w = lexeme (try (string w *> notFollowedBy alphaNumChar))
 reservedWords :: [String]
 reservedWords = ["fun", "forall", "Type"]
 
-maybeident :: Parser (Maybe String)
-maybeident = dummy
-         <|> (Just <$> identifier)
-  where dummy = char '_' *> pure Nothing
-
 identifier :: Parser String
 identifier = lexeme (try (name >>= check))
   where name = (:) <$> letterChar <*> many alphaNumChar
@@ -67,7 +60,7 @@ term = makeExprParser term'
   [ [ InfixL (App <$ symbol "") ]
   , [ InfixR (arrow <$ symbol "->") ] ]
   where arrow :: Term -> Term -> Term
-        arrow t1 t2 = Pi (Binder Nothing t1 t2)
+        arrow t1 t2 = Pi (Binder "_" t1 t2)
 
 term' :: Parser Term
 term' = universe
@@ -85,7 +78,7 @@ var = Var <$> identifier
 piType :: Parser Term
 piType = do
   rword "forall"
-  name <- maybeident
+  name <- identifier
   symbol ":"
   ty <- term
   symbol ","
@@ -95,7 +88,7 @@ piType = do
 lambda :: Parser Term
 lambda = do
   rword "fun"
-  name <- maybeident
+  name <- identifier
   symbol ":"
   ty <- term
   symbol "=>"
@@ -105,14 +98,14 @@ lambda = do
 -- TODO: Handle scoping errors
 convertToDeBruijn :: Term -> S.Term
 convertToDeBruijn = go []
-  where go :: [Maybe String] -> Term -> S.Term
-        go env (Var name) = S.Var (fromJust (elemIndex (Just name) env))
+  where go :: [String] -> Term -> S.Term
+        go env (Var name) = S.Var (fromJust (elemIndex name env))
         go _ (Universe k) = S.Universe k
         go env (Pi rawScope) = S.Pi (goScope env rawScope)
         go env (Lambda rawScope) = S.Lambda (goScope env rawScope)
         go env (App t1 t2) = S.App (go env t1) (go env t2)
 
-        goScope :: [Maybe String] -> Binder -> S.Binder
+        goScope :: [String] -> Binder -> S.Binder
         goScope env (Binder name ty body) = S.Binder name (go env ty) (go (name:env) body)
 
 parseTerm :: String -> Either String S.Term
