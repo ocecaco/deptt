@@ -1,0 +1,42 @@
+fun nat : Type 0 =>
+fun S : nat -> nat =>
+fun O : nat =>
+fun natind : forall P : nat -> Type 0, P O -> (forall n : nat, P n -> P (S n)) -> forall n : nat, P n =>
+
+fun eq : forall A : Type 0, A -> A -> Type 0 =>
+fun refl : forall A : Type 0, forall x : A, eq A x x =>
+
+-- hack? if things are equal according to eq, then they satisfy the
+-- same propositions
+fun hack : forall A : Type 0, forall x : A, forall y : A, eq A x y -> forall P : A -> Type 0, P x -> P y =>
+
+fun plus : nat -> nat -> nat =>
+{- normally, we would be able to prove these things just using refl -}
+fun plusO : forall n : nat, eq nat (plus O n) n =>
+fun plusS : forall m : nat, forall n : nat, eq nat (plus (S m) n) (S (plus m n)) =>
+
+{- To prove:
+
+   n + 0 = n
+
+   or in other words:
+
+   forall n : nat, eq nat (plus n O) n
+-}
+
+-- we use induction
+natind
+
+-- the proposition we wish to show using induction
+(fun q : nat => eq nat (plus q O) q)
+
+-- base case: eq nat (plus O O) O
+(plusO O)
+
+-- inductive case:
+(
+fun k : nat =>
+fun IH : eq nat (plus k O) k =>
+
+hack nat (plus k O) k IH (fun t : nat => eq nat (plus (S k) O) (S t)) (plusS k O)
+)
