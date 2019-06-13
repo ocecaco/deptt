@@ -1,4 +1,4 @@
-module Parser (convertToDeBruijn, Term(..), Binder(..), parseTerm, runParse) where
+module Parser (convertToDeBruijn, Term(..), Binder(..), parseTerm, runParse, parseNoFail) where
 
 import Text.Megaparsec (Parsec, try, notFollowedBy, between, eof, parse)
 import Text.Megaparsec.Char (space1, string, letterChar, alphaNumChar)
@@ -16,6 +16,7 @@ data Term = Var String
           | Pi Binder
           | Lambda Binder
           | App Term Term
+          | Builtin S.Builtin
 
 data Binder = Binder String Term Term
 
@@ -72,8 +73,20 @@ term' = universe
 universe :: Parser Term
 universe = Universe <$> (rword "Type" *> integer)
 
+builtin :: String -> Maybe S.Builtin
+builtin "nat" = Just S.Nat
+builtin "zero" = Just S.Zero
+builtin "succ" = Just S.Succ
+builtin "natelim" = Just S.NatElim
+builtin _ = Nothing
+
+-- TODO: Maybe allow shadowing of builtins
 var :: Parser Term
-var = Var <$> identifier
+var = do
+  i <- identifier
+  case builtin i of
+    Just t -> return (Builtin t)
+    Nothing -> return (Var i)
 
 piType :: Parser Term
 piType = do
@@ -104,6 +117,7 @@ convertToDeBruijn = go []
         go env (Pi rawScope) = S.Pi (goScope env rawScope)
         go env (Lambda rawScope) = S.Lambda (goScope env rawScope)
         go env (App t1 t2) = S.App (go env t1) (go env t2)
+        go _ (Builtin b) = S.Builtin b
 
         goScope :: [String] -> Binder -> S.Binder
         goScope env (Binder name ty body) = S.Binder name (go env ty) (go (name:env) body)
@@ -117,3 +131,9 @@ runParse :: String -> IO ()
 runParse source = case parseTerm source of
   Left e -> putStrLn e
   Right t -> print t
+
+parseNoFail :: String -> S.Term
+parseNoFail str =
+  case parseTerm str of
+    Left _ -> error "parsing is assumed not to fail in parseNoFail"
+    Right t -> t

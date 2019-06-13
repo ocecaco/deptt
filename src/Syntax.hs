@@ -1,18 +1,23 @@
-module Syntax (Term(..), Binder(..), substitute, scopeApply, prettyPrint, shift) where
-
-import Data.Maybe (fromMaybe, fromJust)
+module Syntax (Term(..), Binder(..), Builtin(..), substitute, scopeApply, prettyPrint, shift) where
 
 -- TODO: Add credits to Andrej Bauer for some of the code that is
 -- similar
 data Term = Var Int -- de Bruijn index, also stores the original variable name for pretty printing
-          | Universe Int
           | Pi Binder
           | Lambda Binder
           | App Term Term
+
+          -- predicative hierarchy of universes
+          | Universe Int
+          | Builtin Builtin
+          -- TODO: unit, sum, product, dependent sum (sigma)?
           deriving (Eq, Ord, Show)
 
 data Binder = Binder String Term Term
            deriving (Ord, Show)
+
+data Builtin = Nat | Zero | Succ | NatElim
+             deriving (Eq, Ord, Show)
 
 -- names of bound variables are ignored during equality comparison
 -- since we are using de Bruijn indices (although the name does get
@@ -29,10 +34,11 @@ shiftFull cutoff amount v@(Var k)
   | k >= cutoff = Var (k + amount)
   | otherwise = v
 
-shiftFull _ _ u@(Universe _) = u
 shiftFull cutoff amount (Pi s) = Pi (shiftFullBinder cutoff amount s)
 shiftFull cutoff amount (Lambda s) = Lambda (shiftFullBinder cutoff amount s)
 shiftFull cutoff amount (App t1 t2) = App (shiftFull cutoff amount t1) (shiftFull cutoff amount t2)
+
+shiftFull _ _ t = t
 
 shiftFullBinder :: Int -> Int -> Binder -> Binder
 shiftFullBinder cutoff amount (Binder name ty body) = Binder name (shiftFull cutoff amount ty) (shiftFull (cutoff + 1) amount body)
@@ -45,10 +51,11 @@ substitute j subst t@(Var k)
   | j == k = subst
   | otherwise = t
 
-substitute _ _ t@(Universe _) = t
 substitute j subst (Pi scope) = Pi (substituteScope j subst scope)
 substitute j subst (Lambda scope) = Lambda (substituteScope j subst scope)
 substitute j subst (App t1 t2) = App (substitute j subst t1) (substitute j subst t2)
+
+substitute _ _ t = t
 
 substituteScope :: Int -> Term -> Binder -> Binder
 substituteScope j subst (Binder name ty body) = Binder name (substitute j subst ty) (substitute (j + 1) (shift 1 subst) body)
@@ -83,6 +90,13 @@ prettyPrintHelper env (Pi s) =
 prettyPrintHelper env (Lambda s) = "(fun " ++ prettyname ++ " : " ++ prettyty ++ " => " ++ prettybody ++ ")"
   where (_, prettyname, prettyty, prettybody) = prettyPrintHelperScope env s
 prettyPrintHelper env (App t1 t2) = "(" ++ prettyPrintHelper env t1 ++ " " ++ prettyPrintHelper env t2 ++ ")"
+prettyPrintHelper _ (Builtin b) = prettyPrintBuiltin b
+
+prettyPrintBuiltin :: Builtin -> String
+prettyPrintBuiltin Nat = "nat"
+prettyPrintBuiltin Zero = "zero"
+prettyPrintBuiltin Succ = "succ"
+prettyPrintBuiltin NatElim = "natelim"
 
 prettyPrintHelperScope :: NameEnv -> Binder -> (Bool, String, String, String)
 prettyPrintHelperScope env (Binder rawname ty body) = (occ, prettyname, prettyty, prettybody)
@@ -96,7 +110,8 @@ prettyPrint = prettyPrintHelper []
 
 occursVar :: Int -> Term -> Bool
 occursVar k (Var i) = k == i
-occursVar _ (Universe _) = False
 occursVar k (Pi (Binder _ t1 t2)) = occursVar k t1 || occursVar (k + 1) t2
 occursVar k (Lambda (Binder _ t1 t2)) = occursVar k t1 || occursVar (k + 1) t2
 occursVar k (App t1 t2) = occursVar k t1 || occursVar k t2
+occursVar _ (Universe _) = False
+occursVar _ (Builtin _) = False

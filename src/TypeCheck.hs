@@ -1,7 +1,8 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module TypeCheck (typeCheck, normalize) where
 
-import Syntax (Term(..), Binder(..), scopeApply, shift)
+import Parser (parseNoFail)
+import Syntax (Term(..), Binder(..), Builtin(..), scopeApply, shift)
 import Control.Monad.Except (ExceptT, MonadError(..), runExceptT)
 import Control.Monad.Reader (ReaderT, MonadReader(..), runReaderT)
 import Control.Monad.Identity (Identity, runIdentity)
@@ -28,9 +29,18 @@ lookupType idx = TC $ do
   ctxt <- ask
   return (ctxt !! idx)
 
+builtinType :: Builtin -> Term
+builtinType = go
+  -- TODO: Make this more efficient by caching the results of parsing?
+  where go :: Builtin -> Term
+        go Nat = parseNoFail "Type 0"
+        go Zero = parseNoFail "nat"
+        go Succ = parseNoFail "nat -> nat"
+        go NatElim = parseNoFail "forall P : nat -> Type 0, P zero -> (forall n : nat, P n -> P (succ n)) -> forall n : nat, P n"
+
 inferType :: Term -> TC Term
 inferType (Var i) = shift (i + 1) <$> lookupType i
-
+inferType (Builtin b) = return (builtinType b)
 inferType (Universe k) = return (Universe (k + 1))
 inferType (Pi (Binder _ ty body)) = do
   k1 <- inferUniverse ty
@@ -71,6 +81,14 @@ checkEqual e1 e2
       ctxt <- getContext
       typeError ("type mismatch between " ++ show e1 ++ " and " ++ show e2 ++ " in context " ++ show ctxt)
 
+natElim :: Term -> Term -> Term -> Term -> Term
+natElim p b i n = App (App (App (App (Builtin NatElim) p) b) i) n
+
+normalizeNatElim :: Term -> Term -> Term -> Term -> Term
+normalizeNatElim _ nbase _ (Builtin Zero) = nbase
+normalizeNatElim nprop nbase nind (App (Builtin Succ) k) = normalize (App (App nind k) (natElim nprop nbase nind k))
+normalizeNatElim nprop nbase nind n = natElim nprop nbase nind n
+
 -- TODO: what happens during normalization of ill-typed terms? can we
 -- be sure that this function is never given an ill-typed term?
 normalize :: Term -> Term
@@ -78,9 +96,11 @@ normalize tm@(Var _) = tm
 normalize tm@(Universe _) = tm
 normalize (App e1old e2old) = case e1norm of
     Lambda scope -> normalize (scopeApply scope e2norm)
+    App (App (App (Builtin NatElim) nprop) nbase) nind -> normalizeNatElim nprop nbase nind e2norm
     _ -> App e1norm e2norm
   where e2norm = normalize e2old
         e1norm = normalize e1old
+normalize tm@(Builtin _) = tm
 
 normalize (Pi scope) = Pi (normalizeScope scope)
 normalize (Lambda scope) = Lambda (normalizeScope scope)

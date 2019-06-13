@@ -3,13 +3,12 @@ import Test.Tasty.HUnit
 
 import Prelude hiding (pi)
 
-import Parser (parseTerm)
+import Parser (parseNoFail)
 import Syntax (Term(..), Binder(..))
 import TypeCheck (normalize, typeCheck)
 
 main :: IO ()
 main = defaultMain tests
-
 
 tests :: TestTree
 tests = testGroup "Tests"
@@ -42,29 +41,23 @@ parserTests = testGroup "Parser"
       parseTerm "Type 0 -> Type 1 -> Type 2" @?= Right (pi (Universe 0) (pi (Universe 1) (Universe 2)))
   ]
 
-parse :: String -> Term
-parse str =
-  case parseTerm str of
-    Left _ -> error "parsing is assumed not to fail during this test"
-    Right t -> t
-
 normalizeTests :: TestTree
 normalizeTests = testGroup "Normalization"
   [ testCase "Simple redex" $
-      normalize (parse "(fun x : Type 1 => x) (Type 0)") @?= parse "Type 0"
+      normalize (parseNoFail "(fun x : Type 1 => x) (Type 0)") @?= parseNoFail "Type 0"
   , testCase "Redex under lambda" $
-      normalize (parse "fun y : Type 0 => (fun x : Type 0 => x) y") @?= parse "fun y : Type 0 => y"
+      normalize (parseNoFail "fun y : Type 0 => (fun x : Type 0 => x) y") @?= parseNoFail "fun y : Type 0 => y"
   , testCase "Redex under pi" $
-      normalize (parse "forall x : Type 0, (fun y : Type 0 => y) x") @?= parse "forall x : Type 0, x"
+      normalize (parseNoFail "forall x : Type 0, (fun y : Type 0 => y) x") @?= parseNoFail "forall x : Type 0, x"
   ]
 
 typeCheckTests :: TestTree
 typeCheckTests = testGroup "Type checking"
   [ testCase "Lambda" $
-      tc (parse "fun x : Type 0 => x") @?= (Right $ parse "Type 0 -> Type 0")
+      tc (parse "fun x : Type 0 => x") @?= (Right $ parseNoFail "Type 0 -> Type 0")
   , testCase "Universe" $
-      tc (parse "Type 0") @?= (Right $ parse "Type 1")
+      tc (parseNoFail "Type 0") @?= (Right $ parseNoFail "Type 1")
   , testCase "Application" $
-      tc (parse "fun A : Type 0 => fun B : Type 0 => fun f : A -> B => fun x : A => f x") @?= (Right $ parse "forall A : Type 0, forall B : Type 0, (A -> B) -> A -> B")
+      tc (parseNoFail "fun A : Type 0 => fun B : Type 0 => fun f : A -> B => fun x : A => f x") @?= (Right $ parseNoFail "forall A : Type 0, forall B : Type 0, (A -> B) -> A -> B")
   ]
   where tc s = normalize <$> typeCheck s
