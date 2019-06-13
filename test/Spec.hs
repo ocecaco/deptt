@@ -3,7 +3,7 @@ import Test.Tasty.HUnit
 
 import Prelude hiding (pi)
 
-import Parser (parseNoFail)
+import Parser (parseTerm, parseNoFail)
 import Syntax (Term(..), Binder(..))
 import TypeCheck (normalize, typeCheck)
 
@@ -18,10 +18,10 @@ tests = testGroup "Tests"
   ]
 
 lambda :: Term -> Term -> Term
-lambda ty body = Lambda (Binder (Just "var") ty body)
+lambda ty body = Lambda (Binder "_" ty body)
 
 pi :: Term -> Term -> Term
-pi ty body = Pi (Binder (Just "var") ty body)
+pi ty body = Pi (Binder "var" ty body)
 
 parserTests :: TestTree
 parserTests = testGroup "Parser"
@@ -54,10 +54,12 @@ normalizeTests = testGroup "Normalization"
 typeCheckTests :: TestTree
 typeCheckTests = testGroup "Type checking"
   [ testCase "Lambda" $
-      tc (parse "fun x : Type 0 => x") @?= (Right $ parseNoFail "Type 0 -> Type 0")
+      tc (parseNoFail "fun x : Type 0 => x") @?= (Right $ parseNoFail "Type 0 -> Type 0")
   , testCase "Universe" $
       tc (parseNoFail "Type 0") @?= (Right $ parseNoFail "Type 1")
   , testCase "Application" $
       tc (parseNoFail "fun A : Type 0 => fun B : Type 0 => fun f : A -> B => fun x : A => f x") @?= (Right $ parseNoFail "forall A : Type 0, forall B : Type 0, (A -> B) -> A -> B")
+  , testCase "Variable lookup" $
+      tc (parseNoFail "(fun id : Type 2 -> Type 2 => fun f : id (Type 1) -> Type 1 => f (Type 0)) (fun x : Type 2 => x)") @?= (Right $ parseNoFail "forall f : Type 1 -> Type 1, Type 1")
   ]
   where tc s = normalize <$> typeCheck s
