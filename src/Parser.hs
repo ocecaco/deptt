@@ -15,6 +15,7 @@ data Term = Var String
           | Universe Int
           | Pi Binder
           | Lambda Binder
+          | Let Term Binder
           | App Term Term
           | Builtin S.Builtin
 
@@ -44,7 +45,7 @@ rword :: String -> Parser ()
 rword w = lexeme (try (string w *> notFollowedBy alphaNumChar))
 
 reservedWords :: [String]
-reservedWords = ["fun", "forall", "Type"]
+reservedWords = ["fun", "forall", "Type", "let", "in"]
 
 identifier :: Parser String
 identifier = lexeme (try (name >>= check))
@@ -68,6 +69,7 @@ term' = universe
     <|> var
     <|> piType
     <|> lambda
+    <|> letdef
     <|> parens term
 
 universe :: Parser Term
@@ -111,6 +113,18 @@ lambda = do
   body <- term
   pure (Lambda (Binder name ty body))
 
+letdef :: Parser Term
+letdef = do
+  rword "let"
+  name <- identifier
+  symbol ":"
+  ty <- term
+  symbol "="
+  def <- term
+  symbol "in"
+  body <- term
+  pure (Let def (Binder name ty body))
+
 -- TODO: Handle scoping errors
 convertToDeBruijn :: Term -> S.Term
 convertToDeBruijn = go []
@@ -119,6 +133,7 @@ convertToDeBruijn = go []
         go _ (Universe k) = S.Universe k
         go env (Pi rawScope) = S.Pi (goScope env rawScope)
         go env (Lambda rawScope) = S.Lambda (goScope env rawScope)
+        go env (Let def rawScope) = S.Let (go env def) (goScope env rawScope)
         go env (App t1 t2) = S.App (go env t1) (go env t2)
         go _ (Builtin b) = S.Builtin b
 

@@ -23,6 +23,9 @@ lambda ty body = Lambda (Binder "_" ty body)
 pi :: Term -> Term -> Term
 pi ty body = Pi (Binder "var" ty body)
 
+let_ :: Term -> Term -> Term -> Term
+let_ ty def body = Let def (Binder "var" ty body)
+
 parserTests :: TestTree
 parserTests = testGroup "Parser"
   [ testCase "Universe" $
@@ -39,6 +42,8 @@ parserTests = testGroup "Parser"
       parseTerm "(Type 0) (Type 1) (Type 2)" @?= Right (App (App (Universe 0) (Universe 1)) (Universe 2))
   , testCase "Right-associativity of arrow" $
       parseTerm "Type 0 -> Type 1 -> Type 2" @?= Right (pi (Universe 0) (pi (Universe 1) (Universe 2)))
+  , testCase "Let definitions" $
+      parseTerm "let x : Type 1 = Type 0 in let y : Type 1 = x in y" @?= Right (let_ (Universe 1) (Universe 0) (let_ (Universe 1) (Var 0) (Var 0)))
   ]
 
 normalizeTests :: TestTree
@@ -49,6 +54,8 @@ normalizeTests = testGroup "Normalization"
       normalize (parseNoFail "fun y : Type 0 => (fun x : Type 0 => x) y") @?= parseNoFail "fun y : Type 0 => y"
   , testCase "Redex under pi" $
       normalize (parseNoFail "forall x : Type 0, (fun y : Type 0 => y) x") @?= parseNoFail "forall x : Type 0, x"
+  , testCase "Let definition" $
+      normalize (parseNoFail "let y : Type 1 = Type 0 in (let x : Type 1 = y in x)") @?= parseNoFail "Type 0"
   ]
 
 typeCheckTests :: TestTree

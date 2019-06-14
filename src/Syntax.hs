@@ -5,6 +5,7 @@ module Syntax (Term(..), Binder(..), Builtin(..), substitute, scopeApply, pretty
 data Term = Var Int -- de Bruijn index, also stores the original variable name for pretty printing
           | Pi Binder
           | Lambda Binder
+          | Let Term Binder
           | App Term Term
 
           -- predicative hierarchy of universes
@@ -61,8 +62,9 @@ substitute j subst t@(Var k)
 substitute j subst (Pi scope) = Pi (substituteScope j subst scope)
 substitute j subst (Lambda scope) = Lambda (substituteScope j subst scope)
 substitute j subst (App t1 t2) = App (substitute j subst t1) (substitute j subst t2)
-
-substitute _ _ t = t
+substitute j subst (Let def scope) = Let (substitute j subst def) (substituteScope j subst scope)
+substitute _ _ b@(Builtin _) = b
+substitute _ _ u@(Universe _) = u
 
 substituteScope :: Int -> Term -> Binder -> Binder
 substituteScope j subst (Binder name ty body) = Binder name (substitute j subst ty) (substitute (j + 1) (shift 1 subst) body)
@@ -96,6 +98,8 @@ prettyPrintHelper env (Pi s) =
   where (occ, prettyname, prettyty, prettybody) = prettyPrintHelperScope env s
 prettyPrintHelper env (Lambda s) = "(fun " ++ prettyname ++ " : " ++ prettyty ++ " => " ++ prettybody ++ ")"
   where (_, prettyname, prettyty, prettybody) = prettyPrintHelperScope env s
+prettyPrintHelper env (Let def s) = "(let " ++ prettyname ++ " : " ++ prettyty ++ " = " ++ prettyPrintHelper env def ++ " in " ++ prettybody ++ ")"
+  where (_, prettyname, prettyty, prettybody) = prettyPrintHelperScope env s
 prettyPrintHelper env (App t1 t2) = "(" ++ prettyPrintHelper env t1 ++ " " ++ prettyPrintHelper env t2 ++ ")"
 prettyPrintHelper _ (Builtin b) = prettyPrintBuiltin b
 
@@ -122,6 +126,7 @@ occursVar :: Int -> Term -> Bool
 occursVar k (Var i) = k == i
 occursVar k (Pi (Binder _ t1 t2)) = occursVar k t1 || occursVar (k + 1) t2
 occursVar k (Lambda (Binder _ t1 t2)) = occursVar k t1 || occursVar (k + 1) t2
+occursVar k (Let def (Binder _ t1 t2)) = occursVar k def || occursVar k t1 || occursVar (k + 1) t2
 occursVar k (App t1 t2) = occursVar k t1 || occursVar k t2
 occursVar _ (Universe _) = False
 occursVar _ (Builtin _) = False

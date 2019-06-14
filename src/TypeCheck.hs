@@ -45,6 +45,11 @@ inferType :: Term -> TC Term
 inferType (Var i) = shift (i + 1) <$> lookupType i
 inferType (Builtin b) = return (builtinType b)
 inferType (Universe k) = return (Universe (k + 1))
+inferType (Let def (Binder _ ty body)) = do
+  _univ <- inferUniverse ty
+  tydef <- inferType def
+  checkEqual ty tydef
+  withContext ty (inferType body)
 inferType (Pi (Binder _ ty body)) = do
   k1 <- inferUniverse ty
   k2 <- withContext ty (inferUniverse body)
@@ -97,6 +102,7 @@ normalizeNatElim nprop nbase nind n = natElim nprop nbase nind n
 normalize :: Term -> Term
 normalize tm@(Var _) = tm
 normalize tm@(Universe _) = tm
+normalize (Let def scope) = normalize (scopeApply scope (normalize def))
 normalize (App e1old e2old) = case e1norm of
     Lambda scope -> normalize (scopeApply scope e2norm)
     App (App (App (Builtin NatElim) nprop) nbase) nind -> normalizeNatElim nprop nbase nind e2norm
@@ -109,7 +115,6 @@ normalize tm@(Builtin _) = tm
 normalize (Pi scope) = Pi (normalizeScope scope)
 normalize (Lambda scope) = Lambda (normalizeScope scope)
 
--- TODO: context isn't extended for the body, is that okay?
 normalizeScope :: Binder -> Binder
 normalizeScope (Binder name ty body) = Binder name (normalize ty) (normalize body)
 
