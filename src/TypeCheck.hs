@@ -45,11 +45,11 @@ inferType :: Term -> TC Term
 inferType (Var i) = shift (i + 1) <$> lookupType i
 inferType (Builtin b) = return (builtinType b)
 inferType (Universe k) = return (Universe (k + 1))
-inferType (Let def (Binder _ ty body)) = do
+inferType (Let def scope@(Binder _ ty _)) = do
   _univ <- inferUniverse ty
   tydef <- inferType def
   checkEqual ty tydef
-  withContext ty (inferType body)
+  inferType (scopeApply scope def)
 inferType (Pi (Binder _ ty body)) = do
   k1 <- inferUniverse ty
   k2 <- withContext ty (inferUniverse body)
@@ -106,7 +106,7 @@ normalize (Let def scope) = normalize (scopeApply scope (normalize def))
 normalize (App e1old e2old) = case e1norm of
     Lambda scope -> normalize (scopeApply scope e2norm)
     App (App (App (Builtin NatElim) nprop) nbase) nind -> normalizeNatElim nprop nbase nind e2norm
-    App (App (App (App (App (Builtin EqElim) _) _) _) h0) _ -> h0 -- the right-hand side (the equality proof itself) is ignored
+    -- App (App (App (App (App (Builtin EqElim) _) _) _) h0) _ -> h0 -- the right-hand side (the equality proof itself) is ignored
     _ -> App e1norm e2norm
   where e2norm = normalize e2old
         e1norm = normalize e1old
