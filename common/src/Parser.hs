@@ -127,25 +127,32 @@ letdef = do
   body <- term
   pure (Let def (Binder name ty body))
 
--- TODO: Handle scoping errors
-convertToDeBruijn :: Term -> S.Term
-convertToDeBruijn = go []
-  where go :: [Text] -> Term -> S.Term
-        go env (Var name) = S.Var (fromJust (elemIndex name env))
-        go _ (Universe k) = S.Universe k
-        go env (Pi rawScope) = S.Pi (goScope env rawScope)
-        go env (Lambda rawScope) = S.Lambda (goScope env rawScope)
-        go env (Let def rawScope) = S.Let (go env def) (goScope env rawScope)
-        go env (App t1 t2) = S.App (go env t1) (go env t2)
-        go _ (Builtin b) = S.Builtin b
+data ScopeError = OutOfScope Text
 
-        goScope :: [Text] -> Binder -> S.Binder
-        goScope env (Binder name ty body) = S.Binder name (go env ty) (go (name:env) body)
+convertToDeBruijn :: Term -> Either ScopeError S.Term
+convertToDeBruijn = go []
+  where go :: [Text] -> Term -> Either ScopeError S.Term
+        go env (Var name) =
+          case elemIndex name env of
+            Nothing -> Left $ OutOfScope name
+            Just i -> Right $ S.Var i
+
+        go _ (Universe k) = pure (S.Universe k)
+        go env (Pi rawScope) = S.Pi <$> goScope env rawScope
+        go env (Lambda rawScope) = S.Lambda <$> goScope env rawScope
+        go env (Let def rawScope) = S.Let <$> go env def <*> goScope env rawScope
+        go env (App t1 t2) = S.App <$> go env t1 <*> go env t2
+        go _ (Builtin b) = pure (S.Builtin b)
+
+        goScope :: [Text] -> Binder -> Either ScopeError S.Binder
+        goScope env (Binder name ty body) = S.Binder name <$> go env ty <*> go (name:env) body
 
 parseTerm :: Text -> Either Text S.Term
 parseTerm source = case parse progParser "<interactive>" source of
-  Left errors -> Left $ "parse error"
-  Right t -> Right (convertToDeBruijn t)
+  Left _ -> Left "parse error"
+  Right t -> case convertToDeBruijn t of
+    Left (OutOfScope name) -> Left $ "variable out of scope: " <> name
+    Right t2 -> Right t2
 
 parseNoFail :: Text -> S.Term
 parseNoFail str =

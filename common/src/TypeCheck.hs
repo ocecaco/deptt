@@ -86,9 +86,7 @@ inferUniverse tm = do
 checkEqual :: Term -> Term -> TC ()
 checkEqual e1 e2
   | normalize e1 == normalize e2 = return ()
-  | otherwise = do
-      ctxt <- getContext
-      typeError "type error"
+  | otherwise = typeError "type error"
 
 natElim :: Term -> Term -> Term -> Term -> Term
 natElim p b i n = App (App (App (App (Builtin NatElim) p) b) i) n
