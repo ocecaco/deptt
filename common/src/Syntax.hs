@@ -1,5 +1,8 @@
 module Syntax (Term(..), Binder(..), Builtin(..), substitute, scopeApply, shift) where
 
+import Data.Text (Text)
+import qualified Data.Text as T
+
 -- TODO: Add credits to Andrej Bauer for some of the code that is
 -- similar
 data Term = Var Int -- de Bruijn index, also stores the original variable name for pretty printing
@@ -14,7 +17,7 @@ data Term = Var Int -- de Bruijn index, also stores the original variable name f
           -- TODO: unit, sum, product, dependent sum (sigma)?
           deriving (Eq, Ord)
 
-data Binder = Binder String Term Term
+data Binder = Binder Text Term Term
            deriving (Ord)
 
 data Builtin = Nat

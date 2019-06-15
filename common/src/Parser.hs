@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Parser (convertToDeBruijn, Term(..), Binder(..), parseTerm, parseNoFail) where
 
 import Text.Megaparsec (Parsec, try, notFollowedBy, between, eof, parse)
@@ -9,8 +10,10 @@ import qualified Syntax as S
 import Data.List (elemIndex)
 import Data.Maybe (fromJust)
 import Data.Void (Void)
+import qualified Data.Text as T
+import Data.Text (Text)
 
-data Term = Var String
+data Term = Var Text
           | Universe Int
           | Pi Binder
           | Lambda Binder
@@ -18,9 +21,9 @@ data Term = Var String
           | App Term Term
           | Builtin S.Builtin
 
-data Binder = Binder String Term Term
+data Binder = Binder Text Term Term
 
-type Parser = Parsec Void String
+type Parser = Parsec Void Text
 
 -- partially based on https://markkarpov.com/megaparsec/parsing-simple-imperative-language.html
 sc :: Parser ()
@@ -34,21 +37,21 @@ parens = between (symbol "(") (symbol ")")
 lexeme :: Parser a -> Parser a
 lexeme = L.lexeme sc
 
-symbol :: String -> Parser ()
+symbol :: Text -> Parser ()
 symbol x = L.symbol sc x >> pure ()
 
 integer :: Parser Int
 integer = lexeme L.decimal
 
-rword :: String -> Parser ()
+rword :: Text -> Parser ()
 rword w = lexeme (try (string w *> notFollowedBy alphaNumChar))
 
-reservedWords :: [String]
+reservedWords :: [Text]
 reservedWords = ["fun", "forall", "Type", "let", "in"]
 
-identifier :: Parser String
+identifier :: Parser Text
 identifier = lexeme (try (name >>= check))
-  where name = (:) <$> letterChar <*> many alphaNumChar
+  where name = T.cons <$> letterChar <*> (T.pack <$> many alphaNumChar)
         check x = if x `elem` reservedWords
                   then fail $ "keyword " ++ show x ++ " cannot be used as an identifier"
                   else return x
@@ -74,7 +77,7 @@ term' = universe
 universe :: Parser Term
 universe = Universe <$> (rword "Type" *> integer)
 
-builtin :: String -> Maybe S.Builtin
+builtin :: Text -> Maybe S.Builtin
 builtin "nat" = Just S.Nat
 builtin "zero" = Just S.Zero
 builtin "succ" = Just S.Succ
@@ -127,7 +130,7 @@ letdef = do
 -- TODO: Handle scoping errors
 convertToDeBruijn :: Term -> S.Term
 convertToDeBruijn = go []
-  where go :: [String] -> Term -> S.Term
+  where go :: [Text] -> Term -> S.Term
         go env (Var name) = S.Var (fromJust (elemIndex name env))
         go _ (Universe k) = S.Universe k
         go env (Pi rawScope) = S.Pi (goScope env rawScope)
@@ -136,15 +139,15 @@ convertToDeBruijn = go []
         go env (App t1 t2) = S.App (go env t1) (go env t2)
         go _ (Builtin b) = S.Builtin b
 
-        goScope :: [String] -> Binder -> S.Binder
+        goScope :: [Text] -> Binder -> S.Binder
         goScope env (Binder name ty body) = S.Binder name (go env ty) (go (name:env) body)
 
-parseTerm :: String -> Either String S.Term
+parseTerm :: Text -> Either Text S.Term
 parseTerm source = case parse progParser "<interactive>" source of
   Left errors -> Left $ "parse error"
   Right t -> Right (convertToDeBruijn t)
 
-parseNoFail :: String -> S.Term
+parseNoFail :: Text -> S.Term
 parseNoFail str =
   case parseTerm str of
     Left _ -> error "parsing is assumed not to fail in parseNoFail"

@@ -1,4 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE OverloadedStrings #-}
 module TypeCheck (typeCheck, normalize) where
 
 import Parser (parseNoFail)

@@ -1,9 +1,11 @@
+{-# LANGUAGE OverloadedStrings #-}
 module PrettyPrint (prettyPrint) where
 
+import Data.Text (Text)
+import qualified Data.Text as T
 import Syntax (Term(..), Binder(..), Builtin(..))
 
--- TODO: refactor to use Text instead of String
-type NameEnv = [String]
+type NameEnv = [Text]
 
 lookupIndex :: [a] -> Int -> a
 lookupIndex = (!!)
@@ -11,28 +13,28 @@ lookupIndex = (!!)
 count :: Eq a => a -> [a] -> Int
 count x xs = length (filter (==x) xs)
 
-envName :: NameEnv -> String -> String
+envName :: NameEnv -> Text -> Text
 envName env name
   | c == 0 = name
-  | otherwise = name ++ show c
+  | otherwise = name <> T.pack (show c)
   where c = count name env
 
-prettyPrintHelper :: NameEnv -> Term -> String
+prettyPrintHelper :: NameEnv -> Term -> Text
 prettyPrintHelper env (Var i) = lookupIndex env i
-prettyPrintHelper _ (Universe k) = "Type " ++ show k
+prettyPrintHelper _ (Universe k) = "Type " <> T.pack (show k)
 prettyPrintHelper env (Pi s) =
   if not occ
-  then "(" ++ prettyty ++ " -> " ++ prettybody ++ ")"
-  else "(forall " ++ prettyname ++ " : " ++ prettyty ++ ", " ++ prettybody ++ ")"
+  then "(" <> prettyty <> " -> " <> prettybody <> ")"
+  else "(forall " <> prettyname <> " : " <> prettyty <> ", " <> prettybody <> ")"
   where (occ, prettyname, prettyty, prettybody) = prettyPrintHelperScope env s
-prettyPrintHelper env (Lambda s) = "(fun " ++ prettyname ++ " : " ++ prettyty ++ " => " ++ prettybody ++ ")"
+prettyPrintHelper env (Lambda s) = "(fun " <> prettyname <> " : " <> prettyty <> " => " <> prettybody <> ")"
   where (_, prettyname, prettyty, prettybody) = prettyPrintHelperScope env s
-prettyPrintHelper env (Let def s) = "(let " ++ prettyname ++ " : " ++ prettyty ++ " = " ++ prettyPrintHelper env def ++ " in " ++ prettybody ++ ")"
+prettyPrintHelper env (Let def s) = "(let " <> prettyname <> " : " <> prettyty <> " = " <> prettyPrintHelper env def <> " in " <> prettybody <> ")"
   where (_, prettyname, prettyty, prettybody) = prettyPrintHelperScope env s
-prettyPrintHelper env (App t1 t2) = "(" ++ prettyPrintHelper env t1 ++ " " ++ prettyPrintHelper env t2 ++ ")"
+prettyPrintHelper env (App t1 t2) = "(" <> prettyPrintHelper env t1 <> " " <> prettyPrintHelper env t2 <> ")"
 prettyPrintHelper _ (Builtin b) = prettyPrintBuiltin b
 
-prettyPrintBuiltin :: Builtin -> String
+prettyPrintBuiltin :: Builtin -> Text
 prettyPrintBuiltin Nat = "nat"
 prettyPrintBuiltin Zero = "zero"
 prettyPrintBuiltin Succ = "succ"
@@ -41,14 +43,14 @@ prettyPrintBuiltin Eq = "eq"
 prettyPrintBuiltin Refl = "refl"
 prettyPrintBuiltin EqElim = "eqelim"
 
-prettyPrintHelperScope :: NameEnv -> Binder -> (Bool, String, String, String)
+prettyPrintHelperScope :: NameEnv -> Binder -> (Bool, Text, Text, Text)
 prettyPrintHelperScope env (Binder rawname ty body) = (occ, prettyname, prettyty, prettybody)
   where prettyname = envName env rawname
         prettyty = prettyPrintHelper env ty
         prettybody = prettyPrintHelper (rawname:env) body
         occ = occursVar 0 body
 
-prettyPrint :: Term -> String
+prettyPrint :: Term -> Text
 prettyPrint = prettyPrintHelper []
 
 occursVar :: Int -> Term -> Bool
