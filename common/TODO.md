@@ -2,7 +2,11 @@
 * Switch to Text instead of String wherever possible
 * Put pretty printing in a separate module
 * Better pretty-printing
+* Use pretty-printing library instead of manually concatenating strings
+* Allow more flexible syntax in the parser ("multiple argument" binders)
 * Allow adding assumptions (probably using let definitions and a term for assuming)
+* Make the normalization more conservative (so you can still understand what you've proved)
+* Add tests for nat and eq
 * More informative error messages for type checking and parsing
 * Fix the equality eliminator
 * Add uninhabited type, unit, (dependent) product, coproduct, lists, vectors of fixed size, etc.
