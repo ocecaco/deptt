@@ -2,7 +2,6 @@ module Parser (convertToDeBruijn, Term(..), Binder(..), parseTerm, runParse, par
 
 import Text.Megaparsec (Parsec, try, notFollowedBy, between, eof, parse)
 import Text.Megaparsec.Char (space1, string, letterChar, alphaNumChar)
-import Text.Megaparsec.Error (errorBundlePretty)
 import Control.Monad.Combinators.Expr (Operator(..), makeExprParser)
 import qualified Text.Megaparsec.Char.Lexer as L
 import Control.Applicative (many, (<|>))
@@ -142,7 +141,7 @@ convertToDeBruijn = go []
 
 parseTerm :: String -> Either String S.Term
 parseTerm source = case parse progParser "<interactive>" source of
-  Left errors -> Left $ "parse error:\n" ++ errorBundlePretty errors
+  Left errors -> Left $ "parse error"
   Right t -> Right (convertToDeBruijn t)
 
 runParse :: String -> IO ()
