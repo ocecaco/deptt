@@ -1,4 +1,8 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Main where
 
-main :: IO ()
-main = putStrLn "Hello, Haskell!"
+import Reflex.Dom (mainWidget, el, text)
+import Syntax (Term(..))
+import qualified Data.Text as T
+
+main = mainWidget $ el "div" $ text (T.pack (show (Var 0)))
