@@ -1,4 +1,4 @@
-module Parser (convertToDeBruijn, Term(..), Binder(..), parseTerm, runParse, parseNoFail) where
+module Parser (convertToDeBruijn, Term(..), Binder(..), parseTerm, parseNoFail) where
 
 import Text.Megaparsec (Parsec, try, notFollowedBy, between, eof, parse)
 import Text.Megaparsec.Char (space1, string, letterChar, alphaNumChar)
@@ -143,11 +143,6 @@ parseTerm :: String -> Either String S.Term
 parseTerm source = case parse progParser "<interactive>" source of
   Left errors -> Left $ "parse error"
   Right t -> Right (convertToDeBruijn t)
-
-runParse :: String -> IO ()
-runParse source = case parseTerm source of
-  Left e -> putStrLn e
-  Right t -> print t
 
 parseNoFail :: String -> S.Term
 parseNoFail str =

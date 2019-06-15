@@ -2,8 +2,8 @@ module Lib
     ( someFunc
     ) where
 
-import Syntax (prettyPrint)
 import TypeCheck (typeCheck, normalize)
+import PrettyPrint (prettyPrint)
 import Parser (parseTerm)
 import System.Environment (getArgs)
 import System.IO (readFile)

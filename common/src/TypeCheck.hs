@@ -87,7 +87,7 @@ checkEqual e1 e2
   | normalize e1 == normalize e2 = return ()
   | otherwise = do
       ctxt <- getContext
-      typeError ("type mismatch between " ++ show e1 ++ " and " ++ show e2 ++ " in context " ++ show ctxt)
+      typeError "type error"
 
 natElim :: Term -> Term -> Term -> Term -> Term
 natElim p b i n = App (App (App (App (Builtin NatElim) p) b) i) n
@@ -123,7 +123,7 @@ inferPi tm = do
   ty <- inferType tm
   case normalize ty of
     Pi s -> return s
-    _ -> typeError $ "expected pi, got " ++ show (normalize ty)
+    _ -> typeError "expected pi"
 
 typeCheck :: Term -> Either String Term
 typeCheck tm = runIdentity (runReaderT (runExceptT (runTC (inferType tm))) initialContext)
