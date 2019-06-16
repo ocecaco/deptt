@@ -79,6 +79,8 @@ typeCheckTests = testGroup "Type checking"
       "natelim (fun p : nat => nat) (succ zero) (fun p : nat => succ) (succ zero)" `shouldHaveType` "nat"
   , testCase "Equality refl" $
       "fun A : Type 0 => fun x : A => refl A x" `shouldHaveType` "forall A : Type 0, forall x : A, eq A x x"
+  , testCase "Equality eliminator" $
+      "fun A : Type 0 => fun x : A => fun y : A => fun f : A -> A => fun Heq : eq A (f x) y => fun P : A -> Type 0 => fun Px : P (f x) => eqelim A (f x) P Px y Heq" `shouldHaveType` "forall A : Type 0, forall x : A, forall y : A, forall f : A -> A, eq A (f x) y -> forall P : A -> Type 0, P (f x) -> P y"
   ]
   where tc s = normalize <$> typeCheck s
         shouldHaveType tm ty = tc (parseNoFail tm) @?= (Right $ parseNoFail ty)
