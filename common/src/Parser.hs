@@ -1,13 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Parser (convertToDeBruijn, Term(..), Binder(..), parseTerm, parseNoFail) where
 
-import Text.Megaparsec (Parsec, try, notFollowedBy, between, eof, parse, parseErrorPretty)
+import Text.Megaparsec (Parsec, try, notFollowedBy, between, eof, parse, parseErrorPretty, sepBy1, some)
 import Text.Megaparsec.Char (space1, string, letterChar, alphaNumChar, char)
 import Control.Monad.Combinators.Expr (Operator(..), makeExprParser)
 import qualified Text.Megaparsec.Char.Lexer as L
 import Control.Applicative (many, (<|>))
 import qualified Syntax as S
-import Data.List (elemIndex)
+import Data.List (elemIndex, concat, concat, concat, concat, concat, concat, concat, concat)
 import Data.Maybe (fromJust)
 import Data.Void (Void)
 import qualified Data.Text as T
@@ -56,12 +56,27 @@ identifier = lexeme (try (name >>= check))
                   then fail $ "keyword " ++ show x ++ " cannot be used as an identifier"
                   else return x
 
+binders :: Parser [(Text, Term)]
+binders = manybinders <|> singlebinder
+
+manybinders :: Parser [(Text, Term)]
+manybinders = do
+  groups <- some (parens singlebinder)
+  return (concat groups)
+
+singlebinder :: Parser [(Text, Term)]
+singlebinder = do
+  idents <- identifier `sepBy1` sc
+  symbol ":"
+  ty <- term
+  return [ (i, ty) | i <- idents ]
+
 progParser :: Parser Term
 progParser = between sc eof term
 
 term :: Parser Term
 term = makeExprParser term'
-  [ [ InfixL (App <$ symbol "") ]
+  [ [ InfixL (App <$ sc) ]
   , [ InfixR (arrow <$ symbol "->") ] ]
   where arrow :: Term -> Term -> Term
         arrow t1 t2 = Pi (Binder "_" t1 t2)
@@ -98,22 +113,18 @@ var = do
 piType :: Parser Term
 piType = do
   rword "forall"
-  name <- identifier
-  symbol ":"
-  ty <- term
+  bs <- binders
   symbol ","
   body <- term
-  pure (Pi (Binder name ty body))
+  pure (foldr (\(name, ty) tm -> Pi (Binder name ty tm)) body bs)
 
 lambda :: Parser Term
 lambda = do
   rword "fun"
-  name <- identifier
-  symbol ":"
-  ty <- term
+  bs <- binders
   symbol "=>"
   body <- term
-  pure (Lambda (Binder name ty body))
+  pure (foldr (\(name, ty) tm -> Lambda (Binder name ty tm)) body bs)
 
 letdef :: Parser Term
 letdef = do

@@ -53,6 +53,10 @@ parserTests = testGroup "Parser"
       parseShouldFail "let x : Type 1 = Type 0 in x let y : Type 1 = Type 0 in x"
   , testCase "Nested pi without parentheses" $
       parseShouldFail "forall A : Type 0, A forall y : A, y"
+  , testCase "Combined arguments single type" $
+      parseTerm "fun A : Type 0 => fun x y : A => A" @?= (Right $ parseNoFail "fun A : Type 0 => fun x : A => fun y : A => A")
+  , testCase "Combined arguments different types" $
+      parseTerm "fun (A : Type 0) (x y : A) (Heq : eq A x y) => Heq" @?= (Right $ parseNoFail "fun A : Type 0 => fun x : A => fun y : A => fun Heq : eq A x y => Heq")
   ]
   where parseShouldFail s = let parsed = parseTerm s in case parsed of
           Left _ -> return ()
