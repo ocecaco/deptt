@@ -3,8 +3,6 @@
 module Main where
 
 import Reflex.Dom
-import Control.Monad.Fix (MonadFix)
-import qualified Data.Text as T
 import Data.Text (Text)
 import qualified Lib as L
 

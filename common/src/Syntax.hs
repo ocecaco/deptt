@@ -1,7 +1,6 @@
 module Syntax (Term(..), Binder(..), Builtin(..), substitute, scopeApply, shift) where
 
 import Data.Text (Text)
-import qualified Data.Text as T
 
 -- TODO: Add credits to Andrej Bauer for some of the code that is
 -- similar
@@ -31,7 +30,8 @@ data Builtin = Nat
 
              | Ex
              | ExIntro
-             | ExElim
+             | Fst
+             | Snd
              deriving (Eq, Ord, Show)
 
 -- names of bound variables are ignored during equality comparison

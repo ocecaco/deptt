@@ -10,15 +10,14 @@ import Control.Monad.Except (ExceptT, MonadError(..), runExceptT)
 import Control.Monad.Reader (ReaderT, MonadReader(..), runReaderT)
 import Control.Monad.Identity (Identity, runIdentity)
 import Data.Text (Text)
-import qualified Data.Text as T
 
 type TypeError = Text
 
 -- indexed by De Bruijn indices, we also keep the names to do pretty
 -- printing
 data Context =
-  Context { contextPrettyTypes :: [Text]
-          , contextTypes :: [Term]
+  Context { _contextPrettyTypes :: [Text]
+          , _contextTypes :: [Term]
           }
 
 newtype TC a = TC { runTC :: ExceptT TypeError (ReaderT Context Identity) a }
@@ -50,7 +49,8 @@ builtinType = go
         go EqElim = parseNoFail "forall (A : Type 0) (x : A) (P : A -> Type 0), P x -> forall y : A, eq A x y -> P y"
         go Ex = parseNoFail "forall (A : Type 0), (A -> Type 0) -> Type 0"
         go ExIntro = parseNoFail "forall (A : Type 0) (P : A -> Type 0) (x : A), P x -> ex A P"
-        go ExElim = parseNoFail "forall (A : Type 0) (P : A -> Type 0) (Pex : ex A P -> Type 0) (forall (x : A) (p : P x), Pex (exintro A P x p)) -> forall m : ex A P, Pex m"
+        go Fst = parseNoFail "forall (A : Type 0) (P : A -> Type 0), ex A P -> A"
+        go Snd = parseNoFail "forall (A : Type 0) (P : A -> Type 0) (H : ex A P), P (fst H)"
 
 inferType :: Term -> TC Term
 inferType (Var i) = shift (i + 1) <$> lookupType i
@@ -61,7 +61,7 @@ inferType (Let def scope@(Binder _ ty _)) = do
   tydef <- inferType def
   checkEqual ty tydef
   inferType (scopeApply scope def)
-inferType (Pi (Binder name ty body)) = do
+inferType (Pi (Binder _ ty body)) = do
   k1 <- inferUniverse ty
   k2 <- withContext ty (inferUniverse body)
   return (Universe (max k1 k2))

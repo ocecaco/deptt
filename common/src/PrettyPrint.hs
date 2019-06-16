@@ -141,7 +141,8 @@ renderBuiltin Refl = "refl"
 renderBuiltin EqElim = "eqelim"
 renderBuiltin Ex = "ex"
 renderBuiltin ExIntro = "exintro"
-renderBuiltin ExElim = "exelim"
+renderBuiltin Fst = "fst"
+renderBuiltin Snd = "snd"
 
 renderBinder :: Binder -> PP (Bool, PP (Doc a), PP (Doc a), PP (Doc a))
 renderBinder (Binder rawname ty body) = do

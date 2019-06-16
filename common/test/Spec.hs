@@ -60,7 +60,7 @@ parserTests = testGroup "Parser"
   ]
   where parseShouldFail s = let parsed = parseTerm s in case parsed of
           Left _ -> return ()
-          Right t -> assertFailure $ "Parsing should fail, instead got: " ++ show parsed
+          Right _ -> assertFailure $ "Parsing should fail, instead got: " ++ show parsed
 
 normalizeTests :: TestTree
 normalizeTests = testGroup "Normalization"

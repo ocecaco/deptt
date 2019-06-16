@@ -8,7 +8,6 @@ import qualified Text.Megaparsec.Char.Lexer as L
 import Control.Applicative (many, (<|>))
 import qualified Syntax as S
 import Data.List (elemIndex, concat, concat, concat, concat, concat, concat, concat, concat)
-import Data.Maybe (fromJust)
 import Data.Void (Void)
 import qualified Data.Text as T
 import Data.Text (Text)
@@ -102,7 +101,8 @@ builtin "refl" = Just S.Refl
 builtin "eqelim" = Just S.EqElim
 builtin "ex" = Just S.Ex
 builtin "exintro" = Just S.ExIntro
-builtin "exelim" = Just S.ExElim
+builtin "fst" = Just S.Fst
+builtin "snd" = Just S.Snd
 builtin _ = Nothing
 
 -- TODO: Maybe allow shadowing of builtins
