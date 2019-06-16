@@ -15,10 +15,10 @@ data Term = Var Int -- de Bruijn index, also stores the original variable name f
           | Universe Int
           | Builtin Builtin
           -- TODO: unit, sum, product, dependent sum (sigma)?
-          deriving (Eq, Ord)
+          deriving (Eq, Ord, Show)
 
 data Binder = Binder Text Term Term
-           deriving (Ord)
+           deriving (Ord, Show)
 
 data Builtin = Nat
              | Zero
@@ -28,7 +28,7 @@ data Builtin = Nat
              | Eq
              | Refl
              | EqElim
-             deriving (Eq, Ord)
+             deriving (Eq, Ord, Show)
 
 -- names of bound variables are ignored during equality comparison
 -- since we are using de Bruijn indices (although the name does get
