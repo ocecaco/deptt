@@ -4,6 +4,7 @@ import Test.Tasty.HUnit
 
 import Prelude hiding (pi)
 
+import PrettyPrint (prettyPrint)
 import Parser (parseTerm, parseNoFail)
 import Syntax (Term(..), Binder(..))
 import TypeCheck (normalize, typeCheck)
@@ -16,6 +17,7 @@ tests = testGroup "Tests"
   [ parserTests
   , normalizeTests
   , typeCheckTests
+  , prettyPrintTests
   ]
 
 lambda :: Term -> Term -> Term
@@ -71,3 +73,19 @@ typeCheckTests = testGroup "Type checking"
       tc (parseNoFail "let x : Type 2 = Type 1 in (fun y : x => Type 0) Type 0") @?= (Right $ parseNoFail "Type 1")
   ]
   where tc s = normalize <$> typeCheck s
+
+prettyPrintTests :: TestTree
+prettyPrintTests = testGroup "Pretty printing"
+  [ testCase "Application associativity" $
+      roundtrip "fun x : Type 0 => x (x x x) (x x) x"
+  , testCase "Arrow associativity" $
+      roundtrip "fun x : Type 0 => x -> (x -> x -> x) -> (x -> (x -> x)) -> x"
+  , testCase "Application and arrow" $
+      roundtrip "fun x : Type 0 => x (x -> x) x (x x -> x)"
+  , testCase "Pi over arrow" $
+      roundtrip "forall x : Type 0, x -> x -> x"
+  , testCase "Pi under arrow" $
+      roundtrip "fun x : Type 0 => (forall x : Type 0, x) -> x -> x"
+  ]
+  where roundtrip source = parseTerm (prettyPrint original) @?= Right original
+          where original = parseNoFail source

@@ -2,7 +2,7 @@
 module Parser (convertToDeBruijn, Term(..), Binder(..), parseTerm, parseNoFail) where
 
 import Text.Megaparsec (Parsec, try, notFollowedBy, between, eof, parse, parseErrorPretty)
-import Text.Megaparsec.Char (space1, string, letterChar, alphaNumChar)
+import Text.Megaparsec.Char (space1, string, letterChar, alphaNumChar, char)
 import Control.Monad.Combinators.Expr (Operator(..), makeExprParser)
 import qualified Text.Megaparsec.Char.Lexer as L
 import Control.Applicative (many, (<|>))
@@ -51,7 +51,7 @@ reservedWords = ["fun", "forall", "Type", "let", "in"]
 
 identifier :: Parser Text
 identifier = lexeme (try (name >>= check))
-  where name = T.cons <$> letterChar <*> (T.pack <$> many alphaNumChar)
+  where name = T.cons <$> letterChar <*> (T.pack <$> many (alphaNumChar <|> char '\''))
         check x = if x `elem` reservedWords
                   then fail $ "keyword " ++ show x ++ " cannot be used as an identifier"
                   else return x
