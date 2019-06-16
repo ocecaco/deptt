@@ -2,31 +2,40 @@
 {-# LANGUAGE OverloadedStrings #-}
 module TypeCheck (typeCheck, normalize) where
 
+import PrettyPrint (prettyPrintWithContext)
 import Parser (parseNoFail)
 import Syntax (Term(..), Binder(..), Builtin(..), scopeApply, shift)
 import Normalize (normalize)
 import Control.Monad.Except (ExceptT, MonadError(..), runExceptT)
 import Control.Monad.Reader (ReaderT, MonadReader(..), runReaderT)
 import Control.Monad.Identity (Identity, runIdentity)
+import Data.Text (Text)
+import qualified Data.Text as T
 
-type TypeError = String
+type TypeError = Text
 
--- indexed by De Bruijn indices
-type Context = [Term]
+-- indexed by De Bruijn indices, we also keep the names to do pretty
+-- printing
+data Context =
+  Context { contextPrettyTypes :: [Text]
+          , contextTypes :: [Term]
+          }
 
 newtype TC a = TC { runTC :: ExceptT TypeError (ReaderT Context Identity) a }
              deriving (Functor, Applicative, Monad)
 
-extendContext :: Term -> Context -> Context
-extendContext tm ctxt = tm : ctxt
+extendContext :: Text -> Term -> Context -> Context
+extendContext name ty (Context names tys) = Context (name:names) (ty:tys)
 
 withContext :: Term -> TC a -> TC a
-withContext tm (TC act) = TC $ local (extendContext tm) act
+withContext ty (TC act) = do
+  prettyty <- prettify ty
+  TC (local (extendContext prettyty ty) act)
 
 lookupType :: Int -> TC Term
 lookupType idx = TC $ do
-  ctxt <- ask
-  return (ctxt !! idx)
+  Context _ tys <- ask
+  return (tys !! idx)
 
 builtinType :: Builtin -> Term
 builtinType = go
@@ -52,7 +61,7 @@ inferType (Let def scope@(Binder _ ty _)) = do
   tydef <- inferType def
   checkEqual ty tydef
   inferType (scopeApply scope def)
-inferType (Pi (Binder _ ty body)) = do
+inferType (Pi (Binder name ty body)) = do
   k1 <- inferUniverse ty
   k2 <- withContext ty (inferUniverse body)
   return (Universe (max k1 k2))
@@ -75,26 +84,42 @@ inferType (App e1 e2) = do
 typeError :: TypeError -> TC a
 typeError msg = TC (throwError msg)
 
+prettify :: Term -> TC Text
+prettify tm = TC $ do
+  Context names _ <- ask
+  return (prettyPrintWithContext names tm)
+
 inferUniverse :: Term -> TC Int
 inferUniverse tm = do
   ty <- inferType tm
-  case normalize ty of
+  let norm = normalize ty
+  case norm of
     Universe k -> return k
-    _ -> typeError "expected universe"
+    _ -> do
+      p <- prettify norm
+      typeError $ "expected universe, got " <> p
 
 checkEqual :: Term -> Term -> TC ()
 checkEqual e1 e2
-  | normalize e1 == normalize e2 = return ()
-  | otherwise = typeError "type error"
+  | norme1 == norme2 = return ()
+  | otherwise = do
+      p1 <- prettify norme1
+      p2 <- prettify norme2
+      typeError $ "type mismatch between " <> p1 <> " and " <> p2
+  where norme1 = normalize e1
+        norme2 = normalize e2
 
 inferPi :: Term -> TC Binder
 inferPi tm = do
   ty <- inferType tm
-  case normalize ty of
+  let norm = normalize ty
+  case norm of
     Pi s -> return s
-    _ -> typeError "expected pi"
+    _ -> do
+      p <- prettify norm
+      typeError $ "expected pi, got " <> p
 
-typeCheck :: Term -> Either String Term
+typeCheck :: Term -> Either Text Term
 typeCheck tm = runIdentity (runReaderT (runExceptT (runTC (inferType tm))) initialContext)
   where initialContext :: Context
-        initialContext = []
+        initialContext = Context [] []

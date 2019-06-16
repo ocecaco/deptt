@@ -84,15 +84,15 @@ disambiguate :: Text -> PP Text
 disambiguate name = PP $ do
   env <- ask
   return (findUnique (usedNames env))
-  where -- keep appending primes until the name no longer shadows any
-        -- existing name
-        findUnique :: Set Text -> Text
-        findUnique used = go 1
+  where findUnique :: Set Text -> Text
+        findUnique used = go 0
           where go :: Int -> Text
                 go n
                   | not (newname `S.member` used) = newname
                   | otherwise = go (n + 1)
-                  where newname = name <> T.pack (show n)
+                  where newname
+                          | n == 0 = name
+                          | otherwise = name <> T.pack (show n)
 
 withContext :: Text -> PP a -> PP a
 withContext name (PP act) = PP $ local updateContext act
