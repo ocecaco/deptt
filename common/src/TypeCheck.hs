@@ -2,7 +2,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 module TypeCheck (typeCheck, normalize) where
 
-import PrettyPrint (prettyPrintWithContext)
 import Parser (parseNoFail)
 import Syntax (Term(..), Binder(..), Builtin(..), scopeApply, shift)
 import Normalize (normalize)
@@ -15,26 +14,19 @@ type TypeError = Text
 
 -- indexed by De Bruijn indices, we also keep the names to do pretty
 -- printing
-data Context =
-  Context { _contextPrettyTypes :: [Text]
-          , _contextTypes :: [Term]
-          }
+type Context = [Term]
 
 newtype TC a = TC { runTC :: ExceptT TypeError (ReaderT Context Identity) a }
              deriving (Functor, Applicative, Monad)
 
-extendContext :: Text -> Term -> Context -> Context
-extendContext name ty (Context names tys) = Context (name:names) (ty:tys)
-
 withContext :: Term -> TC a -> TC a
 withContext ty (TC act) = do
-  prettyty <- prettify ty
-  TC (local (extendContext prettyty ty) act)
+  TC (local (ty:) act)
 
 lookupType :: Int -> TC Term
 lookupType idx = TC $ do
-  Context _ tys <- ask
-  return (tys !! idx)
+  ctxt <- ask
+  return (ctxt !! idx)
 
 builtinType :: Builtin -> Term
 builtinType = go
@@ -84,28 +76,18 @@ inferType (App e1 e2) = do
 typeError :: TypeError -> TC a
 typeError msg = TC (throwError msg)
 
-prettify :: Term -> TC Text
-prettify tm = TC $ do
-  Context names _ <- ask
-  return (prettyPrintWithContext names tm)
-
 inferUniverse :: Term -> TC Int
 inferUniverse tm = do
   ty <- inferType tm
   let norm = normalize ty
   case norm of
     Universe k -> return k
-    _ -> do
-      p <- prettify norm
-      typeError $ "expected universe, got " <> p
+    _ -> typeError "expected universe"
 
 checkEqual :: Term -> Term -> TC ()
 checkEqual e1 e2
   | norme1 == norme2 = return ()
-  | otherwise = do
-      p1 <- prettify norme1
-      p2 <- prettify norme2
-      typeError $ "type mismatch between " <> p1 <> " and " <> p2
+  | otherwise = typeError "type mismatch"
   where norme1 = normalize e1
         norme2 = normalize e2
 
@@ -115,11 +97,9 @@ inferPi tm = do
   let norm = normalize ty
   case norm of
     Pi s -> return s
-    _ -> do
-      p <- prettify norm
-      typeError $ "expected pi, got " <> p
+    _ -> typeError "expected pi"
 
 typeCheck :: Term -> Either Text Term
 typeCheck tm = runIdentity (runReaderT (runExceptT (runTC (inferType tm))) initialContext)
   where initialContext :: Context
-        initialContext = Context [] []
+        initialContext = []
