@@ -15,7 +15,12 @@ build-type:          Simple
 extra-source-files:  CHANGELOG.md
 
 library
-  exposed-modules:     TypeCheck, Syntax, Parser, Lib, PrettyPrint
+  exposed-modules:     TypeCheck
+                     , Syntax
+                     , Parser
+                     , Lib
+                     , PrettyPrint
+                     , Normalize
   -- other-modules:
   other-extensions:    GeneralizedNewtypeDeriving
   build-depends:       base

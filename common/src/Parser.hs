@@ -100,6 +100,9 @@ builtin "natelim" = Just S.NatElim
 builtin "eq" = Just S.Eq
 builtin "refl" = Just S.Refl
 builtin "eqelim" = Just S.EqElim
+builtin "ex" = Just S.Ex
+builtin "exintro" = Just S.ExIntro
+builtin "exelim" = Just S.ExElim
 builtin _ = Nothing
 
 -- TODO: Maybe allow shadowing of builtins

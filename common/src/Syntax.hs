@@ -28,6 +28,10 @@ data Builtin = Nat
              | Eq
              | Refl
              | EqElim
+
+             | Ex
+             | ExIntro
+             | ExElim
              deriving (Eq, Ord, Show)
 
 -- names of bound variables are ignored during equality comparison
