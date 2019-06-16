@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Parser (convertToDeBruijn, Term(..), Binder(..), parseTerm, parseNoFail) where
 
-import Text.Megaparsec (Parsec, try, notFollowedBy, between, eof, parse)
+import Text.Megaparsec (Parsec, try, notFollowedBy, between, eof, parse, parseErrorPretty)
 import Text.Megaparsec.Char (space1, string, letterChar, alphaNumChar)
 import Control.Monad.Combinators.Expr (Operator(..), makeExprParser)
 import qualified Text.Megaparsec.Char.Lexer as L
@@ -149,7 +149,7 @@ convertToDeBruijn = go []
 
 parseTerm :: Text -> Either Text S.Term
 parseTerm source = case parse progParser "<interactive>" source of
-  Left _ -> Left "parse error"
+  Left e -> Left (T.pack (parseErrorPretty e))
   Right t -> case convertToDeBruijn t of
     Left (OutOfScope name) -> Left $ "variable out of scope: " <> name
     Right t2 -> Right t2

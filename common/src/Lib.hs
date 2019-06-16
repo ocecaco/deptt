@@ -1,6 +1,15 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Lib
-    ( someFunc
+    ( run
     ) where
 
-someFunc :: IO ()
-someFunc = putStrLn "Hello, world!"
+import Data.Text (Text)
+import Parser (parseNoFail)
+import PrettyPrint (prettyPrint)
+
+-- run :: Text -> Text
+-- run source = case parseTerm source of
+--   Left err -> "error:\n" <> err
+--   Right tm -> undefined
+run :: Text
+run = prettyPrint (parseNoFail "nat (nat -> nat)")

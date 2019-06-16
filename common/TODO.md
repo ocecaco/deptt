@@ -1,6 +1,3 @@
-* Write a small frontend with a text box and an output field
-* Switch to Text instead of String wherever possible
-* Put pretty printing in a separate module
 * Better pretty-printing
 * Use pretty-printing library instead of manually concatenating strings
 * Allow more flexible syntax in the parser ("multiple argument" binders)
