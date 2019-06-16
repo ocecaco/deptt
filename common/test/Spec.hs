@@ -59,20 +59,29 @@ normalizeTests = testGroup "Normalization"
       normalize (parseNoFail "forall x : Type 0, (fun y : Type 0 => y) x") @?= parseNoFail "forall x : Type 0, x"
   , testCase "Let definition" $
       normalize (parseNoFail "let y : Type 1 = Type 0 in (let x : Type 1 = y in x)") @?= parseNoFail "Type 0"
+  , testCase "Natural number elimination" $
+      normalize (parseNoFail "natelim (fun p : nat => nat) (succ zero) (fun p : nat => succ) (succ zero)") @?= parseNoFail "succ (succ zero)"
   ]
 
 typeCheckTests :: TestTree
 typeCheckTests = testGroup "Type checking"
   [ testCase "Lambda" $
-      tc (parseNoFail "fun x : Type 0 => x") @?= (Right $ parseNoFail "Type 0 -> Type 0")
+      "fun x : Type 0 => x" `shouldHaveType` "Type 0 -> Type 0"
   , testCase "Universe" $
-      tc (parseNoFail "Type 0") @?= (Right $ parseNoFail "Type 1")
+      "Type 0" `shouldHaveType` "Type 1"
   , testCase "Application" $
-      tc (parseNoFail "fun A : Type 0 => fun B : Type 0 => fun f : A -> B => fun x : A => f x") @?= (Right $ parseNoFail "forall A : Type 0, forall B : Type 0, (A -> B) -> A -> B")
+      "fun A : Type 0 => fun B : Type 0 => fun f : A -> B => fun x : A => f x" `shouldHaveType` "forall A : Type 0, forall B : Type 0, (A -> B) -> A -> B"
   , testCase "Substitution in let" $
-      tc (parseNoFail "let x : Type 2 = Type 1 in (fun y : x => Type 0) Type 0") @?= (Right $ parseNoFail "Type 1")
+      "let x : Type 2 = Type 1 in (fun y : x => Type 0) Type 0" `shouldHaveType` "Type 1"
+  , testCase "Natural number" $
+      "succ (succ (succ (succ (succ zero))))" `shouldHaveType` "nat"
+  , testCase "Natural number eliminator" $
+      "natelim (fun p : nat => nat) (succ zero) (fun p : nat => succ) (succ zero)" `shouldHaveType` "nat"
+  , testCase "Equality refl" $
+      "fun A : Type 0 => fun x : A => refl A x" `shouldHaveType` "forall A : Type 0, forall x : A, eq A x x"
   ]
   where tc s = normalize <$> typeCheck s
+        shouldHaveType tm ty = tc (parseNoFail tm) @?= (Right $ parseNoFail ty)
 
 prettyPrintTests :: TestTree
 prettyPrintTests = testGroup "Pretty printing"
