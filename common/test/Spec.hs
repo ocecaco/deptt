@@ -47,7 +47,16 @@ parserTests = testGroup "Parser"
       parseTerm "Type 0 -> Type 1 -> Type 2" @?= Right (pi (Universe 0) (pi (Universe 1) (Universe 2)))
   , testCase "Let definitions" $
       parseTerm "let x : Type 1 = Type 0 in let y : Type 1 = x in y" @?= Right (let_ (Universe 1) (Universe 0) (let_ (Universe 1) (Var 0) (Var 0)))
+  , testCase "Nested function without parentheses" $
+      parseShouldFail "fun x : Type 0 => x fun x : Type 0 => x"
+  , testCase "Nested let without parentheses" $
+      parseShouldFail "let x : Type 1 = Type 0 in x let y : Type 1 = Type 0 in x"
+  , testCase "Nested pi without parentheses" $
+      parseShouldFail "forall A : Type 0, A forall y : A, y"
   ]
+  where parseShouldFail s = let parsed = parseTerm s in case parsed of
+          Left _ -> return ()
+          Right t -> assertFailure $ "Parsing should fail, instead got: " ++ show parsed
 
 normalizeTests :: TestTree
 normalizeTests = testGroup "Normalization"
