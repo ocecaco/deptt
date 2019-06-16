@@ -66,14 +66,14 @@ infl lvl op x1 x2 = atLevel lvl $ do
   op' <- op
   x1' <- x1
   x2' <- bump x2
-  return (x1' <+> op' <+> x2')
+  return (x1' <> op' <> x2')
 
 infr :: Int -> PP (Doc a) -> PP (Doc a) -> PP (Doc a) -> PP (Doc a)
 infr lvl op x1 x2 = atLevel lvl $ do
   op' <- op
   x1' <- bump x1
   x2' <- x2
-  return (x1' <+> op' <+> x2')
+  return (x1' <> op' <> x2')
 
 lookupName :: Int -> PP Text
 lookupName i = PP $ do
@@ -105,7 +105,7 @@ render (Builtin b) = return (renderBuiltin b)
 render (Pi s) = do
   (occ, prettyname, prettyty, prettybody) <- renderBinder s
   if not occ
-  then infr 1 (pure "->") prettyty prettybody
+  then infr 1 (pure " -> ") prettyty prettybody
   else atLevel 0 $ do
     prettyname' <- prettyname
     prettyty' <- prettyty

@@ -86,6 +86,8 @@ prettyPrintTests = testGroup "Pretty printing"
       roundtrip "forall x : Type 0, x -> x -> x"
   , testCase "Pi under arrow" $
       roundtrip "fun x : Type 0 => (forall x : Type 0, x) -> x -> x"
+  , testCase "Function under app" $
+      roundtrip "(fun x : Type 1 => x) Type 0"
   ]
   where roundtrip source = parseTerm (prettyPrint original) @?= Right original
           where original = parseNoFail source
