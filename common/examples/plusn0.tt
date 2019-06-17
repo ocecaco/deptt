@@ -1,19 +1,13 @@
-fun nat : Type 0 =>
-fun S : nat -> nat =>
-fun O : nat =>
-fun natind : forall P : nat -> Type 0, P O -> (forall n : nat, P n -> P (S n)) -> forall n : nat, P n =>
+let plus : nat -> nat -> nat =
 
-fun eq : forall A : Type 0, A -> A -> Type 0 =>
-fun refl : forall A : Type 0, forall x : A, eq A x x =>
--- this is the eliminator for equality, based on Equality a la Paulin
--- from section 5.1.3 of the paper Inductive Families by Peter
--- Dybjer. It is essentially the rule of substitution.
-fun reflind : forall A : Type 0, forall x : A, forall P : A -> Type 0, P x -> forall y : A, eq A x y -> P y =>
+fun n m : nat =>
+natelim
+(fun p : nat => nat)
+m
+(fun p : nat => succ)
+n
 
-fun plus : nat -> nat -> nat =>
-{- normally, we would be able to prove these things just using refl -}
-fun plusO : forall n : nat, eq nat (plus O n) n =>
-fun plusS : forall m : nat, forall n : nat, eq nat (plus (S m) n) (S (plus m n)) =>
+in
 
 {- To prove:
 
@@ -21,22 +15,22 @@ fun plusS : forall m : nat, forall n : nat, eq nat (plus (S m) n) (S (plus m n))
 
    or in other words:
 
-   forall n : nat, eq nat (plus n O) n
+   forall n : nat, eq nat (plus n zero) n
 -}
 
 -- we use induction
-natind
+natelim
 
 -- the proposition we wish to show using induction
-(fun q : nat => eq nat (plus q O) q)
+(fun q : nat => eq nat (plus q zero) q)
 
--- base case: 0 + 0 = 0 or equivalently eq nat (plus O O) O
-(plusO O)
+-- base case: 0 + 0 = 0 or equivalently eq nat (plus zero zero) zero
+(refl nat zero)
 
 -- inductive case:
 (
 fun k : nat =>
-fun IH : eq nat (plus k O) k =>
+fun IH : eq nat (plus k zero) k =>
 
-reflind nat (plus k O) (fun t : nat => eq nat (plus (S k) O) (S t)) (plusS k O) k IH
+eqelim nat (plus k zero) (fun t : nat => eq nat (plus (succ k) zero) (succ t)) (refl nat (plus (succ k) zero)) k IH
 )
