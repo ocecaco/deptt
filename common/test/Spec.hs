@@ -82,6 +82,8 @@ normalizeTests = testGroup "Normalization"
       norm (parseNoFail "orelim nat nat (fun p : or nat nat => nat) succ (fun x : nat => x) (inl nat nat zero)") @?= parseNoFail "succ zero"
   , testCase "Coproduct elimination (right)" $
       norm (parseNoFail "orelim nat nat (fun p : or nat nat => nat) succ (fun x : nat => x) (inr nat nat zero)") @?= parseNoFail "zero"
+  , testCase "Equality elimination" $
+      norm (parseNoFail "eqelim nat zero (fun x : nat => eq nat zero x) (refl nat zero) zero (refl nat zero)") @?= parseNoFail "refl nat zero"
   ]
   where -- check type preservation
         norm :: Term -> Term
