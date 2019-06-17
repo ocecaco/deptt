@@ -3,21 +3,16 @@
 module Main where
 
 import Reflex.Dom
-import Data.Text (Text)
 import qualified Lib as L
 
-myButton :: DomBuilder t m => Text -> m (Event t ())
-myButton t = do
-  (e, _) <- elClass' "button" "button" (text t)
-  return $ domEvent Click e
-
--- main :: IO ()
--- main = mainWidget $ elClass "section" "section" $ elClass "div" "container" $ do
---   elClass "h1" "title" (text "Type checker for dependent type theory")
---   input <- textArea def
---   btn <- myButton "Click me"
---   _ <- textNode $ def
---     & textNodeConfig_setContents .~ tag (fmap T.reverse . current $ _textArea_value input) btn
--- return ()
 main :: IO ()
-main = mainWidget $ el "div" $ text L.run
+main = mainWidget $ elClass "section" "section" $ elClass "div" "container" $ do
+  elClass "h1" "title" (text "Type checker for dependent type theory")
+  input <- el "div" $ textArea def
+  btn <- el "div" $ button "Go"
+  let terms = tag (fmap L.run . current $ _textArea_value input) btn
+  _ <- el "div" $ el "pre" $ el "code" $ textNode $ def
+    & textNodeConfig_setContents .~ fmap fst terms
+  _ <- el "div" $ el "pre" $ el "code" $ textNode $ def
+    & textNodeConfig_setContents .~ fmap snd terms
+  return ()

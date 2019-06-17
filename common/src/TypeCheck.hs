@@ -42,7 +42,7 @@ builtinType = go
         go Ex = parseNoFail "forall (A : Type 0), (A -> Type 0) -> Type 0"
         go ExIntro = parseNoFail "forall (A : Type 0) (P : A -> Type 0) (x : A), P x -> ex A P"
         go Fst = parseNoFail "forall (A : Type 0) (P : A -> Type 0), ex A P -> A"
-        go Snd = parseNoFail "forall (A : Type 0) (P : A -> Type 0) (H : ex A P), P (fst H)"
+        go Snd = parseNoFail "forall (A : Type 0) (P : A -> Type 0) (H : ex A P), P (fst A P H)"
 
 inferType :: Term -> TC Term
 inferType (Var i) = shift (i + 1) <$> lookupType i
