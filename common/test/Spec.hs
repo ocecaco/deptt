@@ -75,9 +75,9 @@ normalizeTests = testGroup "Normalization"
   , testCase "Natural number elimination" $
       normalize (parseNoFail "natelim (fun p : nat => nat) (succ zero) (fun p : nat => succ) (succ zero)") @?= parseNoFail "succ (succ zero)"
   , testCase "Exists fst elimination" $
-      normalize (parseNoFail "fst (exintro nat (fun x : nat => eq nat x x) zero (refl nat zero))") @?= parseNoFail "zero"
+      normalize (parseNoFail "fst nat (fun x : nat => eq nat x x) ((exintro nat (fun x : nat => eq nat x x) zero (refl nat zero)))") @?= parseNoFail "zero"
   , testCase "Exists snd elimination" $
-      normalize (parseNoFail "snd (exintro nat (fun x : nat => eq nat x x) zero (refl nat zero))") @?= parseNoFail "refl nat zero"
+      normalize (parseNoFail "snd nat (fun x : nat => eq nat x x) ((exintro nat (fun x : nat => eq nat x x) zero (refl nat zero)))") @?= parseNoFail "refl nat zero"
   ]
 
 typeCheckTests :: TestTree
@@ -103,7 +103,7 @@ typeCheckTests = testGroup "Type checking"
   , testCase "Exists fst" $
       "fun (A : Type 0) (P : A -> Type 0) (H : ex A P) => fst A P H" `shouldHaveType` "forall (A : Type 0) (P : A -> Type 0) (H : ex A P), A"
   , testCase "Exists snd" $
-      "fun (A : Type 0) (P : A -> Type 0) (H : ex A P) => snd A P H" `shouldHaveType` "forall (A : Type 0) (P : A -> Type 0) (H : ex A P), P (fst H)"
+      "fun (A : Type 0) (P : A -> Type 0) (H : ex A P) => snd A P H" `shouldHaveType` "forall (A : Type 0) (P : A -> Type 0) (H : ex A P), P (fst A P H)"
   ]
   where tc s = normalize <$> typeCheck s
         shouldHaveType tm ty = tc (parseNoFail tm) @?= (Right $ parseNoFail ty)
