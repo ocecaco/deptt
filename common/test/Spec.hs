@@ -65,20 +65,33 @@ parserTests = testGroup "Parser"
 normalizeTests :: TestTree
 normalizeTests = testGroup "Normalization"
   [ testCase "Simple redex" $
-      normalize (parseNoFail "(fun x : Type 1 => x) (Type 0)") @?= parseNoFail "Type 0"
+      norm (parseNoFail "(fun x : Type 1 => x) (Type 0)") @?= parseNoFail "Type 0"
   , testCase "Redex under lambda" $
-      normalize (parseNoFail "fun y : Type 0 => (fun x : Type 0 => x) y") @?= parseNoFail "fun y : Type 0 => y"
+      norm (parseNoFail "fun y : Type 0 => (fun x : Type 0 => x) y") @?= parseNoFail "fun y : Type 0 => y"
   , testCase "Redex under pi" $
-      normalize (parseNoFail "forall x : Type 0, (fun y : Type 0 => y) x") @?= parseNoFail "forall x : Type 0, x"
+      norm (parseNoFail "forall x : Type 0, (fun y : Type 0 => y) x") @?= parseNoFail "forall x : Type 0, x"
   , testCase "Let definition" $
-      normalize (parseNoFail "let y : Type 1 = Type 0 in (let x : Type 1 = y in x)") @?= parseNoFail "Type 0"
+      norm (parseNoFail "let y : Type 1 = Type 0 in (let x : Type 1 = y in x)") @?= parseNoFail "Type 0"
   , testCase "Natural number elimination" $
-      normalize (parseNoFail "natelim (fun p : nat => nat) (succ zero) (fun p : nat => succ) (succ zero)") @?= parseNoFail "succ (succ zero)"
+      norm (parseNoFail "natelim (fun p : nat => nat) (succ zero) (fun p : nat => succ) (succ zero)") @?= parseNoFail "succ (succ zero)"
   , testCase "Exists fst elimination" $
-      normalize (parseNoFail "fst nat (fun x : nat => eq nat x x) ((exintro nat (fun x : nat => eq nat x x) zero (refl nat zero)))") @?= parseNoFail "zero"
+      norm (parseNoFail "fst nat (fun x : nat => eq nat x x) ((exintro nat (fun x : nat => eq nat x x) zero (refl nat zero)))") @?= parseNoFail "zero"
   , testCase "Exists snd elimination" $
-      normalize (parseNoFail "snd nat (fun x : nat => eq nat x x) ((exintro nat (fun x : nat => eq nat x x) zero (refl nat zero)))") @?= parseNoFail "refl nat zero"
+      norm (parseNoFail "snd nat (fun x : nat => eq nat x x) ((exintro nat (fun x : nat => eq nat x x) zero (refl nat zero)))") @?= parseNoFail "refl nat zero"
   ]
+  where -- check type preservation
+        norm :: Term -> Term
+        norm toBeNormalized
+          | normalize beforeTy /= normalize afterTy = error "type not preserved during normalization"
+          | otherwise = normed
+          where getType :: Term -> Term
+                getType tm = case typeCheck tm of
+                  Left _ -> error "type checking should not fail in normalization tests"
+                  Right ty -> ty
+
+                beforeTy = getType toBeNormalized
+                normed = normalize toBeNormalized
+                afterTy = getType normed
 
 typeCheckTests :: TestTree
 typeCheckTests = testGroup "Type checking"
