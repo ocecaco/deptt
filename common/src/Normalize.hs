@@ -13,6 +13,8 @@ normalizeBuiltin (App (App (App (Builtin NatElim) _) nbase) _) (Builtin Zero) = 
 normalizeBuiltin (App (App (App (Builtin NatElim) nprop) nbase) nind) (App (Builtin Succ) k) = Just (normalize (App (App nind k) (natElim nprop nbase nind k)))
 normalizeBuiltin (App (App (Builtin Fst) _) _) (App (App (App (App (Builtin ExIntro) _) _) x) _) = Just x
 normalizeBuiltin (App (App (Builtin Snd) _) _) (App (App (App (App (Builtin ExIntro) _) _) _) y) = Just y
+normalizeBuiltin (App (App (App (App (App (Builtin OrElim) _A) _B) _P) left) _right) (App (App (App (Builtin InL) _A2) _B2) x) = Just (normalize (App left x))
+normalizeBuiltin (App (App (App (App (App (Builtin OrElim) _A) _B) _P) _left) right) (App (App (App (Builtin InR) _A2) _B2) y) = Just (normalize (App right y))
 normalizeBuiltin _ _ = Nothing
 
 normalize :: Term -> Term

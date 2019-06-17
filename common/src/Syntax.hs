@@ -32,6 +32,11 @@ data Builtin = Nat
              | ExIntro
              | Fst
              | Snd
+
+             | Or
+             | InL
+             | InR
+             | OrElim
              deriving (Eq, Ord, Show)
 
 -- names of bound variables are ignored during equality comparison

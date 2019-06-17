@@ -143,6 +143,10 @@ renderBuiltin Ex = "ex"
 renderBuiltin ExIntro = "exintro"
 renderBuiltin Fst = "fst"
 renderBuiltin Snd = "snd"
+renderBuiltin Or = "or"
+renderBuiltin InL = "inl"
+renderBuiltin InR = "inr"
+renderBuiltin OrElim = "orelim"
 
 renderBinder :: Binder -> PP (Bool, PP (Doc a), PP (Doc a), PP (Doc a))
 renderBinder (Binder rawname ty body) = do

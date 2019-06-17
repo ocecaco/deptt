@@ -103,6 +103,10 @@ builtin "ex" = Just S.Ex
 builtin "exintro" = Just S.ExIntro
 builtin "fst" = Just S.Fst
 builtin "snd" = Just S.Snd
+builtin "or" = Just S.Or
+builtin "inl" = Just S.InL
+builtin "inr" = Just S.InR
+builtin "orelim" = Just S.OrElim
 builtin _ = Nothing
 
 -- TODO: Maybe allow shadowing of builtins
