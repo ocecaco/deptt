@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Parser (convertToDeBruijn, Term(..), Binder(..), parseTerm, parseNoFail) where
+module Parser (convertToDeBruijn, Term(..), Binder(..), parseTerm) where
 
 import Text.Megaparsec (Parsec, try, notFollowedBy, between, eof, parse, parseErrorPretty, sepBy1, some)
 import Text.Megaparsec.Char (space1, string, letterChar, alphaNumChar, char)
