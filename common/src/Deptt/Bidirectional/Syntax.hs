@@ -15,6 +15,7 @@ data Var = Bound Int
 data TermC = Lambda (Scope TermC)
            | Let TermI (Scope TermC)
            | Infer TermI
+           | Refl
            deriving (Eq, Ord, Show)
 
 data TermI = Var Var
@@ -22,6 +23,8 @@ data TermI = Var Var
            | Pi TermI (Scope TermI)
            | App TermI TermC
            | Annotate TermC TermI
+
+           | Eq TermI TermI
            deriving (Eq, Ord, Show)
 
 newtype Scope a = Scope a
@@ -85,6 +88,14 @@ inferType (Annotate term ty) = do
   ((), transterm) <- checkType term transty
   return (transty, transterm)
 
+inferType (Eq t1 t2) = do
+  (ty1, trans1) <- inferType t1
+  (ty2, trans2) <- inferType t2
+  checkEqual ty1 ty2
+  return (C.Universe 0, eq ty1 trans1 trans2)
+  where eq :: C.Term -> C.Term -> C.Term -> C.Term
+        eq ty x y = ((C.Builtin C.Eq `C.App` ty) `C.App` x) `C.App` y
+
 checkEqual :: C.Term -> C.Term -> TC ()
 checkEqual e1 e2
   | norme1 == norme2 = return ()
@@ -114,3 +125,11 @@ checkType (Let def scope) tyexpect = do
   _ <- inferType def
   ((), transbody) <- checkType (instantiateC def scope) tyexpect
   return ((), transbody)
+
+checkType Refl tyexpect = do
+  let normtyexpect = N.normalizeTerm tyexpect
+  case normtyexpect of
+    ((C.Builtin C.Eq `C.App` ty) `C.App` t1) `C.App` t2 -> do
+      checkEqual t1 t2
+      return ((), (C.Builtin C.Refl `C.App` ty) `C.App` t1)
+    _ -> typeError "refl expects equality type"
