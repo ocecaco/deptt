@@ -27,6 +27,7 @@ normalizeBuiltin (App (App (Builtin Snd) _) _) (App (App (App (App (Builtin ExIn
 normalizeBuiltin (App (App (App (App (App (Builtin OrElim) _A) _B) _P) left) _right) (App (App (App (Builtin InL) _A2) _B2) x) = Just (normalize (App left x))
 normalizeBuiltin (App (App (App (App (App (Builtin OrElim) _A) _B) _P) _left) right) (App (App (App (Builtin InR) _A2) _B2) y) = Just (normalize (App right y))
 normalizeBuiltin (App (App (App (App (App (Builtin EqElim) _A) _x) _P) px) _y) (App (App (Builtin Refl) _A2) _x2) = Just (return px)
+normalizeBuiltin (App (App (Builtin UnitElim) _P) ptt) (Builtin Tt) = Just (return ptt)
 normalizeBuiltin _ _ = Nothing
 
 normalize :: Term -> Norm Term

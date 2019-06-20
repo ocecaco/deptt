@@ -21,6 +21,11 @@ module SyntaxBuilder
   , inl
   , inr
   , orelim
+  , unit
+  , tt
+  , unitelim
+  , void
+  , voidelim
   )
 where
 
@@ -89,6 +94,21 @@ inr = Builtin InR
 
 orelim :: Term
 orelim = Builtin OrElim
+
+unit :: Term
+unit = Builtin Unit
+
+tt :: Term
+tt = Builtin Tt
+
+unitelim :: Term
+unitelim = Builtin UnitElim
+
+void :: Term
+void = Builtin Void
+
+voidelim :: Term
+voidelim = Builtin VoidElim
 
 infixl 9 @@
 infixr 8 +->

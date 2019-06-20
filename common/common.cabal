@@ -20,6 +20,7 @@ library
                      , Lib
                      , Normalize
                      , VarSupply
+                     , SyntaxBuilder
   -- other-modules:
   other-extensions:    GeneralizedNewtypeDeriving
   build-depends:       base

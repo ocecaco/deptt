@@ -40,6 +40,13 @@ data Builtin = Nat
              | InL
              | InR
              | OrElim
+
+             | Unit
+             | Tt
+             | UnitElim
+
+             | Void
+             | VoidElim
              deriving (Eq, Ord, Show)
 
 -- names of bound variables are ignored during equality comparison

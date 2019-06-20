@@ -57,6 +57,13 @@ builtinType InL = forall "A" (type_ 0) (forall "B" (type_ 0) (v "A" +-> or_ @@ v
 builtinType InR = forall "A" (type_ 0) (forall "B" (type_ 0) (v "B" +-> or_ @@ v "A" @@ v "B"))
 builtinType OrElim = forall "A" (type_ 0) (forall "B" (type_ 0) (forall "P" (or_ @@ v "A" @@ v "B" +-> type_ 0) ((forall "a" (v "A") (v "P" @@ (inl @@ v "A" @@ v "B" @@ v "a"))) +-> (forall "b" (v "B") (v "P" @@ (inl @@ v "A" @@ v "B" @@ v "b"))) +-> forall "s" (or_ @@ v "A" @@ v "B") (v "P" @@ v "s"))))
 
+builtinType Unit = type_ 0
+builtinType Tt = unit
+builtinType UnitElim = forall "P" (unit +-> type_ 0) (v "P" @@ tt +-> forall "u" unit (v "P" @@ v "u"))
+
+builtinType Void = type_ 0
+builtinType VoidElim = forall "P" (void +-> type_ 0) (forall "e" void (v "P" @@ v "e"))
+
 inferType :: Term -> TC Term
 inferType (Var (Bound _)) = error "type checker encountered bound var"
 inferType (Var (Free name)) = lookupType name
