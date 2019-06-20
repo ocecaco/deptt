@@ -32,7 +32,7 @@ data Builtin = Nat
              | EqElim
 
              | Ex
-             | ExIntro
+             | Pack
              | Fst
              | Snd
 
@@ -40,6 +40,11 @@ data Builtin = Nat
              | InL
              | InR
              | OrElim
+
+             | And
+             | Pair
+             | Proj1
+             | Proj2
 
              | Unit
              | Tt

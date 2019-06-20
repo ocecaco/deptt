@@ -14,13 +14,17 @@ module Deptt.Core.Syntax.Builder
   , refl
   , eqelim
   , ex
-  , exintro
+  , pack
   , fst_
   , snd_
   , or_
   , inl
   , inr
   , orelim
+  , and_
+  , pair
+  , proj1
+  , proj2
   , unit
   , tt
   , unitelim
@@ -74,8 +78,8 @@ eqelim = Builtin EqElim
 ex :: Term
 ex = Builtin Ex
 
-exintro :: Term
-exintro = Builtin ExIntro
+pack :: Term
+pack = Builtin Pack
 
 fst_ :: Term
 fst_ = Builtin Fst
@@ -94,6 +98,18 @@ inr = Builtin InR
 
 orelim :: Term
 orelim = Builtin OrElim
+
+and_ :: Term
+and_ = Builtin And
+
+pair :: Term
+pair = Builtin Pair
+
+proj1 :: Term
+proj1 = Builtin Proj1
+
+proj2 :: Term
+proj2 = Builtin Proj2
 
 unit :: Term
 unit = Builtin Unit

@@ -22,11 +22,13 @@ natElim p b i n = App (App (App (App (Builtin NatElim) p) b) i) n
 normalizeBuiltin :: Term -> Term -> Maybe (Norm Term)
 normalizeBuiltin (App (App (App (Builtin NatElim) _) nbase) _) (Builtin Zero) = Just (return nbase)
 normalizeBuiltin (App (App (App (Builtin NatElim) nprop) nbase) nind) (App (Builtin Succ) k) = Just (normalize (App (App nind k) (natElim nprop nbase nind k)))
-normalizeBuiltin (App (App (Builtin Fst) _) _) (App (App (App (App (Builtin ExIntro) _) _) x) _) = Just (return x)
-normalizeBuiltin (App (App (Builtin Snd) _) _) (App (App (App (App (Builtin ExIntro) _) _) _) y) = Just (return y)
+normalizeBuiltin (App (App (Builtin Fst) _) _) (App (App (App (App (Builtin Pack) _) _) x) _) = Just (return x)
+normalizeBuiltin (App (App (Builtin Snd) _) _) (App (App (App (App (Builtin Pack) _) _) _) y) = Just (return y)
 normalizeBuiltin (App (App (App (App (App (Builtin OrElim) _A) _B) _P) left) _right) (App (App (App (Builtin InL) _A2) _B2) x) = Just (normalize (App left x))
 normalizeBuiltin (App (App (App (App (App (Builtin OrElim) _A) _B) _P) _left) right) (App (App (App (Builtin InR) _A2) _B2) y) = Just (normalize (App right y))
 normalizeBuiltin (App (App (App (App (App (Builtin EqElim) _A) _x) _P) px) _y) (App (App (Builtin Refl) _A2) _x2) = Just (return px)
+normalizeBuiltin (App (App (Builtin Proj1) _A1) _B1) (App (App (App (App (Builtin Pair) _A) _B) x) _y) = Just (return x)
+normalizeBuiltin (App (App (Builtin Proj2) _A1) _B1) (App (App (App (App (Builtin Pair) _A) _B) _x) y) = Just (return y)
 normalizeBuiltin (App (App (Builtin UnitElim) _P) ptt) (Builtin Tt) = Just (return ptt)
 normalizeBuiltin _ _ = Nothing
 

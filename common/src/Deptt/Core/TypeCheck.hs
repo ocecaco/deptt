@@ -48,7 +48,7 @@ builtinType Refl = forall "A" (type_ 0) (forall "x" (v "A") (eq @@ v "A" @@ v "x
 builtinType EqElim = forall "A" (type_ 0) (forall "x" (v "A") (forall "P" (v "A" +-> type_ 0) (v "P" @@ v "x" +-> forall "y" (v "A") (eq @@ v "A" @@ v "x" @@ v "y" +-> v "P" @@ v "y"))))
 
 builtinType Ex = forall "A" (type_ 0) ((v "A" +-> type_ 0) +-> type_ 0)
-builtinType ExIntro = forall "A" (type_ 0) (forall "P" (v "A" +-> type_ 0) (forall "x" (v "A") (v "P" @@ v "x" +-> ex @@ v"A" @@ v "P")))
+builtinType Pack = forall "A" (type_ 0) (forall "P" (v "A" +-> type_ 0) (forall "x" (v "A") (v "P" @@ v "x" +-> ex @@ v"A" @@ v "P")))
 builtinType Fst = forall "A" (type_ 0) (forall "P" (v "A" +-> type_ 0) (ex @@ v "A" @@ v "P" +-> v "A"))
 builtinType Snd = forall "A" (type_ 0) (forall "P" (v "A" +-> type_ 0) (forall "H" (ex @@ v "A" @@ v "P") (v "P" @@ (fst_ @@ v "A" @@ v "P" @@ v "H"))))
 
@@ -56,6 +56,11 @@ builtinType Or = type_ 0 +-> type_ 0 +-> type_ 0
 builtinType InL = forall "A" (type_ 0) (forall "B" (type_ 0) (v "A" +-> or_ @@ v "A" @@ v "B"))
 builtinType InR = forall "A" (type_ 0) (forall "B" (type_ 0) (v "B" +-> or_ @@ v "A" @@ v "B"))
 builtinType OrElim = forall "A" (type_ 0) (forall "B" (type_ 0) (forall "P" (or_ @@ v "A" @@ v "B" +-> type_ 0) ((forall "a" (v "A") (v "P" @@ (inl @@ v "A" @@ v "B" @@ v "a"))) +-> (forall "b" (v "B") (v "P" @@ (inl @@ v "A" @@ v "B" @@ v "b"))) +-> forall "s" (or_ @@ v "A" @@ v "B") (v "P" @@ v "s"))))
+
+builtinType And = type_ 0 +-> type_ 0 +-> type_ 0
+builtinType Pair = forall "A" (type_ 0) (forall "B" (type_ 0) (v "A" +-> v "B" +-> and_ @@ v "A" @@ v "B"))
+builtinType Proj1 = forall "A" (type_ 0) (forall "B" (type_ 0) (and_ @@ v "A" @@ v "B" +-> v "A"))
+builtinType Proj2 = forall "A" (type_ 0) (forall "B" (type_ 0) (and_ @@ v "A" @@ v "B" +-> v "B"))
 
 builtinType Unit = type_ 0
 builtinType Tt = unit
