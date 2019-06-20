@@ -1,29 +1,17 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Lib (myTerm) where
+module Lib (myTerm, myTerm2) where
 
 import Data.Text (Text)
 import Syntax(Term(..), Var(..), abstract)
-
-fun :: Text -> Term -> Term -> Term
-fun name ty body = Lambda ty (abstract name body)
-
--- (+->) :: Term -> Term -> Term
--- t1 +-> t2 = Pi t1 (abstract "__unused__" t2)
-
-type_ :: Int -> Term
-type_ = Universe
-
-v :: Text -> Term
-v name = Var (Free name)
-
-(@@) :: Term -> Term -> Term
-t1 @@ t2 = App t1 t2
-
-infixl 9 @@
--- infixr 8 +->
+import SyntaxBuilder
 
 myTerm :: Term
-myTerm = fun "y" (type_ 0) (fun "x" (type_ 0) (v "x") @@ v "y")
+myTerm = plus two two
+  where two = succ_ @@ (succ_ @@ zero)
+        plus x y = natelim @@ fun "p" nat nat @@ x @@ fun "p" nat succ_ @@ y
+
+myTerm2 :: Term
+myTerm2 = refl @@ nat @@ zero
 
 -- run :: Text -> (Text, Text)
 -- run source = case parsed of

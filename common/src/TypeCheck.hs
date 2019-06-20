@@ -3,6 +3,7 @@
 module TypeCheck (typeCheck) where
 
 import Syntax (Var(..), Term(..), Scope, Builtin(..), abstract, instantiate)
+import SyntaxBuilder
 import Normalize (normalizeTerm)
 import Control.Monad.Except (ExceptT, MonadError(..), runExceptT)
 import Control.Monad.Reader (ReaderT, MonadReader(..), runReaderT)
@@ -27,8 +28,7 @@ freshVar = TC $ lift . lift $ do
   return $ "__typechecker_" <> T.pack (show i)
 
 withContext :: Text -> Term -> TC a -> TC a
-withContext name ty (TC act) = do
-  TC (local (M.insert name ty) act)
+withContext name ty (TC act) = TC (local (M.insert name ty) act)
 
 lookupType :: Text -> TC Term
 lookupType name = TC $ do
@@ -38,7 +38,24 @@ lookupType name = TC $ do
     Nothing -> error "lookupType: missing name in environment"
 
 builtinType :: Builtin -> Term
-builtinType = undefined
+builtinType Nat = type_ 0
+builtinType Zero = nat
+builtinType Succ = nat +-> nat
+builtinType NatElim = forall "P" (nat +-> type_ 0) (v "P" @@ zero +-> forall "k" nat (v "P" @@ v "k" +-> v "P" @@ (succ_ @@ v "k")) +-> forall "n" nat (v "P" @@ v "n"))
+
+builtinType Eq = forall "A" (type_ 0) (v "A" +-> v "A" +-> type_ 0)
+builtinType Refl = forall "A" (type_ 0) (forall "x" (v "A") (eq @@ v "A" @@ v "x" @@ v "x"))
+builtinType EqElim = forall "A" (type_ 0) (forall "x" (v "A") (forall "P" (v "A" +-> type_ 0) (v "P" @@ v "x" +-> forall "y" (v "A") (eq @@ v "A" @@ v "x" @@ v "y" +-> v "P" @@ v "y"))))
+
+builtinType Ex = forall "A" (type_ 0) ((v "A" +-> type_ 0) +-> type_ 0)
+builtinType ExIntro = forall "A" (type_ 0) (forall "P" (v "A" +-> type_ 0) (forall "x" (v "A") (v "P" @@ v "x" +-> ex @@ v"A" @@ v "P")))
+builtinType Fst = forall "A" (type_ 0) (forall "P" (v "A" +-> type_ 0) (ex @@ v "A" @@ v "P" +-> v "A"))
+builtinType Snd = forall "A" (type_ 0) (forall "P" (v "A" +-> type_ 0) (forall "H" (ex @@ v "A" @@ v "P") (v "P" @@ (fst_ @@ v "A" @@ v "P" @@ v "H"))))
+
+builtinType Or = type_ 0 +-> type_ 0 +-> type_ 0
+builtinType InL = forall "A" (type_ 0) (forall "B" (type_ 0) (v "A" +-> or_ @@ v "A" @@ v "B"))
+builtinType InR = forall "A" (type_ 0) (forall "B" (type_ 0) (v "B" +-> or_ @@ v "A" @@ v "B"))
+builtinType OrElim = forall "A" (type_ 0) (forall "B" (type_ 0) (forall "P" (or_ @@ v "A" @@ v "B" +-> type_ 0) ((forall "a" (v "A") (v "P" @@ (inl @@ v "A" @@ v "B" @@ v "a"))) +-> (forall "b" (v "B") (v "P" @@ (inl @@ v "A" @@ v "B" @@ v "b"))) +-> forall "s" (or_ @@ v "A" @@ v "B") (v "P" @@ v "s"))))
 
 inferType :: Term -> TC Term
 inferType (Var (Bound _)) = error "type checker encountered bound var"
