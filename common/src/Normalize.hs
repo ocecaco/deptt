@@ -1,38 +1,57 @@
-module Normalize (normalize) where
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+module Normalize (normalizeTerm) where
 
-import Syntax (Term(..), Builtin(..), Binder(..), scopeApply)
+import VarSupply (VarSupplyT, fresh, runVarSupplyT)
+import Control.Monad.Identity (Identity, runIdentity)
+import Syntax (Var(..), Term(..), Builtin(..), Scope, abstract, instantiate)
+import Data.Text (Text)
+import qualified Data.Text as T
+
+newtype Norm a = Norm { runNorm :: VarSupplyT Identity a }
+               deriving (Functor, Applicative, Monad)
+
+freshVar :: Norm Text
+freshVar = Norm $ do
+  i <- fresh
+  return $ "__normalize_" <> T.pack (show i)
 
 natElim :: Term -> Term -> Term -> Term -> Term
 natElim p b i n = App (App (App (App (Builtin NatElim) p) b) i) n
 
--- TODO: computation rule for eqelim
-normalizeBuiltin :: Term -> Term -> Maybe Term
--- natelim: base case
-normalizeBuiltin (App (App (App (Builtin NatElim) _) nbase) _) (Builtin Zero) = Just nbase
--- natelim: inductive case
+normalizeBuiltin :: Term -> Term -> Maybe (Norm Term)
+normalizeBuiltin (App (App (App (Builtin NatElim) _) nbase) _) (Builtin Zero) = Just (return nbase)
 normalizeBuiltin (App (App (App (Builtin NatElim) nprop) nbase) nind) (App (Builtin Succ) k) = Just (normalize (App (App nind k) (natElim nprop nbase nind k)))
-normalizeBuiltin (App (App (Builtin Fst) _) _) (App (App (App (App (Builtin ExIntro) _) _) x) _) = Just x
-normalizeBuiltin (App (App (Builtin Snd) _) _) (App (App (App (App (Builtin ExIntro) _) _) _) y) = Just y
+normalizeBuiltin (App (App (Builtin Fst) _) _) (App (App (App (App (Builtin ExIntro) _) _) x) _) = Just (return x)
+normalizeBuiltin (App (App (Builtin Snd) _) _) (App (App (App (App (Builtin ExIntro) _) _) _) y) = Just (return y)
 normalizeBuiltin (App (App (App (App (App (Builtin OrElim) _A) _B) _P) left) _right) (App (App (App (Builtin InL) _A2) _B2) x) = Just (normalize (App left x))
 normalizeBuiltin (App (App (App (App (App (Builtin OrElim) _A) _B) _P) _left) right) (App (App (App (Builtin InR) _A2) _B2) y) = Just (normalize (App right y))
-normalizeBuiltin (App (App (App (App (App (Builtin EqElim) _A) _x) _P) px) _y) (App (App (Builtin Refl) _A2) _x2) = Just px
+normalizeBuiltin (App (App (App (App (App (Builtin EqElim) _A) _x) _P) px) _y) (App (App (Builtin Refl) _A2) _x2) = Just (return px)
 normalizeBuiltin _ _ = Nothing
 
-normalize :: Term -> Term
-normalize tm@(Var _) = tm
-normalize tm@(Universe _) = tm
-normalize (Let def scope) = normalize (scopeApply scope (normalize def))
-normalize (App e1old e2old) = case normalizeBuiltin e1norm e2norm of
-  Just result -> result
-  Nothing -> case e1norm of
-    Lambda scope -> normalize (scopeApply scope e2norm)
-    _ -> App e1norm e2norm
-  where e2norm = normalize e2old
-        e1norm = normalize e1old
-normalize tm@(Builtin _) = tm
+normalize :: Term -> Norm Term
+normalize tm@(Var _) = return tm
+normalize tm@(Universe _) = return tm
+normalize tm@(Builtin _) = return tm
+normalize (Let def _ scope) = normalize =<< (instantiate <$> normalize def <*> pure scope)
+normalize (App e1old e2old) = do
+  e1norm <- normalize e1old
+  e2norm <- normalize e2old
+  case normalizeBuiltin e1norm e2norm of
+    Just result -> result
+    Nothing -> case e1norm of
+      Lambda _ scope -> normalize (instantiate e2norm scope)
+      _ -> return $ App e1norm e2norm
 
-normalize (Pi scope) = Pi (normalizeScope scope)
-normalize (Lambda scope) = Lambda (normalizeScope scope)
+normalize (Pi ty scope) = Pi <$> normalize ty <*> normalizeScope scope
+normalize (Lambda ty scope) = Lambda <$> normalize ty <*> normalizeScope scope
 
-normalizeScope :: Binder -> Binder
-normalizeScope (Binder name ty body) = Binder name (normalize ty) (normalize body)
+normalizeScope :: Scope -> Norm Scope
+normalizeScope scope = do
+  f <- freshVar
+  let opened = instantiate (Var (Free f)) scope
+  normed <- normalize opened
+  return $ abstract f normed
+
+normalizeTerm :: Term -> Term
+normalizeTerm tm = runIdentity (runVarSupplyT (runNorm (normalize tm)))

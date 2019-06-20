@@ -1,23 +1,26 @@
-module Syntax (Term(..), Binder(..), Builtin(..), substitute, scopeApply, shift) where
+module Syntax (Var(..), Term(..), Scope, Builtin(..), abstract, instantiate) where
 
 import Data.Text (Text)
 
+data Var = Bound Int -- de Bruijn index
+         | Free Text -- free variable by name
+         deriving (Eq, Ord, Show)
+
 -- TODO: Add credits to Andrej Bauer for some of the code that is
 -- similar
-data Term = Var Int -- de Bruijn index, also stores the original variable name for pretty printing
-          | Pi Binder
-          | Lambda Binder
-          | Let Term Binder
+data Term = Var Var
+          | Pi Term Scope
+          | Lambda Term Scope
+          | Let Term Term Scope
           | App Term Term
 
           -- predicative hierarchy of universes
           | Universe Int
           | Builtin Builtin
-          -- TODO: unit, sum, product, dependent sum (sigma)?
           deriving (Eq, Ord, Show)
 
-data Binder = Binder Text Term Term
-           deriving (Ord, Show)
+data Scope = Scope Term
+              deriving (Ord, Show)
 
 data Builtin = Nat
              | Zero
@@ -42,45 +45,42 @@ data Builtin = Nat
 -- names of bound variables are ignored during equality comparison
 -- since we are using de Bruijn indices (although the name does get
 -- used for pretty printing)
-instance Eq Binder where
-  Binder _ ty1 body1 == Binder _ ty2 body2 = ty1 == ty2 && body1 == body2
+instance Eq Scope where
+  Scope body1 == Scope body2 = body1 == body2
 
--- whether a variable is shifted depends on whether its index reached
--- outside of the bound variables (into the free variables)
+-- based on Conor McBride's "I am not a number--I am a free variable"
+abstract :: Text -> Term -> Scope
+abstract name fullTerm = Scope (go 0 fullTerm)
+  where go :: Int -> Term -> Term
+        go _ t@(Universe _) = t
+        go _ t@(Builtin _) = t
+        go _ t@(Var (Bound _)) = t
+        go i t@(Var (Free n))
+          | name == n = Var (Bound i)
+          | otherwise = t
+        go i (App t1 t2) = App (go i t1) (go i t2)
+        go i (Pi ty scope) = Pi (go i ty) (goScope i scope)
+        go i (Lambda ty scope) = Lambda (go i ty) (goScope i scope)
+        go i (Let def ty scope) = Let (go i def) (go i ty) (goScope i scope)
 
--- this code is based on page 79 of "Types and Programming Languages"
-shiftFull :: Int -> Int -> Term -> Term
-shiftFull cutoff amount v@(Var k)
-  | k >= cutoff = Var (k + amount)
-  | otherwise = v
+        goScope :: Int -> Scope -> Scope
+        goScope i (Scope body) = Scope (go (i + 1) body)
 
-shiftFull cutoff amount (Pi s) = Pi (shiftFullBinder cutoff amount s)
-shiftFull cutoff amount (Lambda s) = Lambda (shiftFullBinder cutoff amount s)
-shiftFull cutoff amount (App t1 t2) = App (shiftFull cutoff amount t1) (shiftFull cutoff amount t2)
+-- TODO: add debug check to ensure that there are no dangling de
+-- bruijn variables in the term that is being substituted?
+instantiate :: Term -> Scope -> Term
+instantiate sub (Scope body) = go 0 body
+  where go :: Int -> Term -> Term
+        go _ t@(Universe _) = t
+        go _ t@(Builtin _) = t
+        go _ t@(Var (Free _)) = t
+        go i t@(Var (Bound k))
+          | i == k = sub
+          | otherwise = t
+        go i (App t1 t2) = App (go i t1) (go i t2)
+        go i (Lambda ty scope) = Lambda (go i ty) (goScope i scope)
+        go i (Pi ty scope) = Pi (go i ty) (goScope i scope)
+        go i (Let def ty scope) = Let (go i def) (go i ty) (goScope i scope)
 
-shiftFull _ _ t = t
-
-shiftFullBinder :: Int -> Int -> Binder -> Binder
-shiftFullBinder cutoff amount (Binder name ty body) = Binder name (shiftFull cutoff amount ty) (shiftFull (cutoff + 1) amount body)
-
-shift :: Int -> Term -> Term
-shift = shiftFull 0
-
-substitute :: Int -> Term -> Term -> Term
-substitute j subst t@(Var k)
-  | j == k = subst
-  | otherwise = t
-
-substitute j subst (Pi scope) = Pi (substituteScope j subst scope)
-substitute j subst (Lambda scope) = Lambda (substituteScope j subst scope)
-substitute j subst (App t1 t2) = App (substitute j subst t1) (substitute j subst t2)
-substitute j subst (Let def scope) = Let (substitute j subst def) (substituteScope j subst scope)
-substitute _ _ b@(Builtin _) = b
-substitute _ _ u@(Universe _) = u
-
-substituteScope :: Int -> Term -> Binder -> Binder
-substituteScope j subst (Binder name ty body) = Binder name (substitute j subst ty) (substitute (j + 1) (shift 1 subst) body)
-
--- used for beta reduction, takes a scope and substitutes a term into it
-scopeApply :: Binder -> Term -> Term
-scopeApply (Binder _ _ abstraction) arg = shift (-1) (substitute 0 (shift 1 arg) abstraction)
+        goScope :: Int -> Scope -> Scope
+        goScope i (Scope inner) = Scope (go (i + 1) inner)

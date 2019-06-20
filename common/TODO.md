@@ -5,6 +5,5 @@
 * Make the normalization more conservative (so you can still understand what you've proved)
 * Add tests for nat and eq
 * More informative error messages for type checking and parsing
-* Fix the equality eliminator
 * Add uninhabited type, unit, (dependent) product, coproduct, lists, vectors of fixed size, etc.
 * Maybe switch to bidirectional type checking to allow less type annotations, and to allow more documentation by allowing type annotations in arbitrary places
