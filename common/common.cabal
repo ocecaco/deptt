@@ -21,6 +21,7 @@ library
                      , Deptt
                      , Deptt.Core.Normalize
                      , Deptt.Util.VarSupply
+                     , Deptt.Bidirectional.Syntax
   other-extensions:    GeneralizedNewtypeDeriving
   build-depends:       base
                      , mtl
