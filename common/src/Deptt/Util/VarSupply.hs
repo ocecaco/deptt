@@ -1,5 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-module VarSupply (VarSupplyT, runVarSupplyT, fresh) where
+module Deptt.Util.VarSupply (VarSupplyT, runVarSupplyT, fresh) where
 
 import Control.Monad.Trans (MonadTrans)
 import Control.Monad.State.Strict (StateT, evalStateT, MonadState(get, put))

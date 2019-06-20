@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module SyntaxBuilder
+module Deptt.Core.Syntax.Builder
   ( fun
   , forall
   , (+->)
@@ -29,7 +29,7 @@ module SyntaxBuilder
   )
 where
 
-import Syntax (Term(..), Var(..), Builtin(..), abstract)
+import Deptt.Core.Syntax (Term(..), Var(..), Builtin(..), abstract)
 import Data.Text (Text)
 
 fun :: Text -> Term -> Term -> Term

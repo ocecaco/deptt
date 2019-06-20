@@ -1,15 +1,15 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
-module TypeCheck (typeCheck) where
+module Deptt.Core.TypeCheck (typeCheck) where
 
-import Syntax (Var(..), Term(..), Scope, Builtin(..), abstract, instantiate)
-import SyntaxBuilder
-import Normalize (normalizeTerm)
+import Deptt.Core.Syntax (Var(..), Term(..), Scope, Builtin(..), abstract, instantiate)
+import Deptt.Core.Syntax.Builder
+import Deptt.Core.Normalize (normalizeTerm)
 import Control.Monad.Except (ExceptT, MonadError(..), runExceptT)
 import Control.Monad.Reader (ReaderT, MonadReader(..), runReaderT)
 import Control.Monad.Identity (Identity, runIdentity)
 import Control.Monad.Trans (lift)
-import VarSupply (VarSupplyT, runVarSupplyT, fresh)
+import Deptt.Util.VarSupply (VarSupplyT, runVarSupplyT, fresh)
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Map.Strict as M

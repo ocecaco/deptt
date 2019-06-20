@@ -1,10 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-module Normalize (normalizeTerm) where
+module Deptt.Core.Normalize (normalizeTerm) where
 
-import VarSupply (VarSupplyT, fresh, runVarSupplyT)
+import Deptt.Util.VarSupply (VarSupplyT, fresh, runVarSupplyT)
 import Control.Monad.Identity (Identity, runIdentity)
-import Syntax (Var(..), Term(..), Builtin(..), Scope, abstract, instantiate)
+import Deptt.Core.Syntax (Var(..), Term(..), Builtin(..), Scope, abstract, instantiate)
 import Data.Text (Text)
 import qualified Data.Text as T
 

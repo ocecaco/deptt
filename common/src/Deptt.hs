@@ -1,9 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Lib (myTerm, myTerm2) where
+module Deptt (myTerm, myTerm2) where
 
-import Data.Text (Text)
-import Syntax(Term(..), Var(..), abstract)
-import SyntaxBuilder
+import Deptt.Core.Syntax (Term)
+import Deptt.Core.Syntax.Builder
 
 myTerm :: Term
 myTerm = plus two two

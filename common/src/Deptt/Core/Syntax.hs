@@ -1,4 +1,4 @@
-module Syntax (Var(..), Term(..), Scope, Builtin(..), abstract, instantiate) where
+module Deptt.Core.Syntax (Var(..), Term(..), Scope, Builtin(..), abstract, instantiate) where
 
 import Data.Text (Text)
 
