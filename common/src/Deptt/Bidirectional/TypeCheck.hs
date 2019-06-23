@@ -67,7 +67,7 @@ inferType (Pi ty scope) = do
   (k1, tytrans) <- inferUniverse ty
   name <- freshVar
   let opened = instantiateI (Var (Free name)) scope
-  (k2, bodytrans) <- inferUniverse opened
+  (k2, bodytrans) <- withContext name tytrans $ inferUniverse opened
   return (C.Universe (max k1 k2), C.Pi tytrans (C.abstract name bodytrans))
 inferType (App fun arg) = do
   ((piexpect, pibody), transfun) <- inferPi fun

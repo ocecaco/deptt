@@ -1,4 +1,4 @@
-module Deptt.Bidirectional.Syntax (TermC(..), TermI(..), Var(..), Scope, instantiateC, instantiateI) where
+module Deptt.Bidirectional.Syntax (TermC(..), TermI(..), Var(..), Scope(..), instantiateC, instantiateI, abstractC, abstractI) where
 
 import Data.Text (Text)
 
@@ -52,3 +52,32 @@ instantiateScopeI' sub i (Scope t) = Scope (instantiateI' sub (i + 1) t)
 
 instantiateScopeC' :: TermI -> Int -> Scope TermC -> Scope TermC
 instantiateScopeC' sub i (Scope t) = Scope (instantiateC' sub (i + 1) t)
+
+abstractC :: Text -> TermC -> Scope TermC
+abstractC name t = Scope (abstractC' name 0 t)
+
+abstractI :: Text -> TermI -> Scope TermI
+abstractI name t = Scope (abstractI' name 0 t)
+
+abstractC' :: Text -> Int -> TermC -> TermC
+abstractC' name i (Lambda scope) = Lambda (abstractScopeC' name i scope)
+abstractC' name i (Let def scope) = Let (abstractI' name i def) (abstractScopeC' name i scope)
+abstractC' name i (Infer t) = Infer (abstractI' name i t)
+abstractC' _ _ t@Refl = t
+
+abstractI' :: Text -> Int -> TermI -> TermI
+abstractI' _ _ t@(Universe _) = t
+abstractI' _ _ t@(Var (Bound _)) = t
+abstractI' name i t@(Var (Free n))
+  | name == n = Var (Bound i)
+  | otherwise = t
+abstractI' name i (Pi ty scope) = Pi (abstractI' name i ty) (abstractScopeI' name i scope)
+abstractI' name i (App t1 t2) = App (abstractI' name i t1) (abstractC' name i t2)
+abstractI' name i (Annotate tm ty) = Annotate (abstractC' name i tm) (abstractI' name i ty)
+abstractI' name i (Eq t1 t2) = Eq (abstractI' name i t1) (abstractI' name i t2)
+
+abstractScopeC' :: Text -> Int -> Scope TermC -> Scope TermC
+abstractScopeC' name i (Scope t) = Scope (abstractC' name (i + 1) t)
+
+abstractScopeI' :: Text -> Int -> Scope TermI -> Scope TermI
+abstractScopeI' name i (Scope t) = Scope (abstractI' name (i + 1) t)
