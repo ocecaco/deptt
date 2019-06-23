@@ -13,6 +13,7 @@ import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as M
 import Deptt.Util.VarSupply (VarSupplyT, runVarSupplyT, fresh)
 import qualified Deptt.Core.Syntax as C
+import qualified Deptt.Core.Normalize as N
 
 -- This type checker outputs a type (TermI) and a
 -- translated/elaborated core language term (C.Term). The reason it
@@ -52,6 +53,7 @@ freshVar = TC $ lift . lift $ do
 inferPi :: TermI -> TC (TCResult (TermI, Scope TermI))
 inferPi tm = do
   (ty, trans) <- inferType tm
+  -- TODO: incorrect, need to normalize before pattern matching
   case ty of
     Pi t s -> return ((t, s), trans)
     _ -> typeError "expected pi"
@@ -59,6 +61,7 @@ inferPi tm = do
 inferUniverse :: TermI -> TC (TCResult Int)
 inferUniverse tm = do
   (ty, trans) <- inferType tm
+  -- TODO: incorrect, need to normalize before pattern matching
   case ty of
     Universe k -> return (k, trans)
     _ -> typeError "expected pi"
@@ -95,6 +98,8 @@ inferType (Eq t1 t2) = do
 
 checkEqual :: TermI -> TermI -> TC ()
 checkEqual e1 e2 = undefined
+  -- (_, transe1) <- inferType e1
+  -- (_, transe2) <- inferType e2
   -- | norme1 == norme2 = return ()
   -- | otherwise = typeError "type mismatch"
   -- where norme1 = N.normalizeTerm e1
