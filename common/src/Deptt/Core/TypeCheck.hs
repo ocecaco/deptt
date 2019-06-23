@@ -1,6 +1,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Deptt.Core.TypeCheck (typeCheck) where
+module Deptt.Core.TypeCheck (typeCheck, runWithContext, inferType, inferPi, inferUniverse, Context, TC) where
 
 import Deptt.Core.Syntax (Var(..), Term(..), Scope, Builtin(..), abstract, instantiate)
 import Deptt.Core.Syntax.Builder
@@ -130,6 +130,9 @@ inferPi tm = do
     _ -> typeError "expected pi"
 
 typeCheck :: Term -> Either Text Term
-typeCheck tm = runIdentity (runVarSupplyT (runReaderT (runExceptT (runTC (inferType tm))) initialContext))
+typeCheck tm = runWithContext initialContext (inferType tm)
   where initialContext :: Context
         initialContext = M.empty
+
+runWithContext :: Context -> TC a -> Either Text a
+runWithContext ctxt act = runIdentity (runVarSupplyT (runReaderT (runExceptT (runTC act)) ctxt))

@@ -3,17 +3,21 @@
 module Deptt.Bidirectional.TypeCheck (infer) where
 
 import Data.Text (Text)
-import Deptt.Bidirectional.Syntax (TermC(..), TermI(..), Var(..), Scope, instantiateC, instantiateI)
+import Deptt.Bidirectional.Syntax (TermC(..), TermI(..), Var(..), instantiateC, instantiateI)
 import qualified Data.Text as T
 import Control.Monad.Identity (Identity, runIdentity)
 import Control.Monad.Except (ExceptT, MonadError(..), runExceptT)
 import Control.Monad.Reader (ReaderT, MonadReader(..), runReaderT)
 import Control.Monad.Trans (lift)
+import Control.Monad (when)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as M
 import Deptt.Util.VarSupply (VarSupplyT, runVarSupplyT, fresh)
 import qualified Deptt.Core.Syntax as C
 import qualified Deptt.Core.Normalize as N
+import qualified Deptt.Core.TypeCheck as CT
+
+-- TODO: Less wrapping/unwrapping using TC
 
 -- This type checker outputs a type (TermI) and a
 -- translated/elaborated core language term (C.Term). The reason it
@@ -36,17 +40,17 @@ import qualified Deptt.Core.Normalize as N
 
 -- TODO: might not be necessary to keep the context since we can just
 -- store the type in the generated free variables themselves
-type Context = Map Text TermI
+type Context = Map Text C.Term
 
 newtype TC a = TC { runTC :: ExceptT Text (ReaderT Context (VarSupplyT Identity)) a }
              deriving (Functor, Applicative, Monad)
 
 type TCResult a = (a, C.Term)
 
-withContext :: Text -> TermI -> TC a -> TC a
+withContext :: Text -> C.Term -> TC a -> TC a
 withContext name ty (TC act) = TC (local (M.insert name ty) act)
 
-lookupType :: Text -> TC TermI
+lookupType :: Text -> TC C.Term
 lookupType name = TC $ do
   ctxt <- ask
   case M.lookup name ctxt of
@@ -62,24 +66,22 @@ freshVar = TC $ lift . lift $ do
   i <- fresh
   return $ "__elaborator_" <> T.pack (show i)
 
-inferPi :: TermI -> TC (TCResult (TermI, Scope TermI))
+inferPi :: TermI -> TC (TCResult (C.Term, C.Scope))
 inferPi tm = do
   (ty, trans) <- inferType tm
-  -- TODO: incorrect, need to normalize before pattern matching
-  case ty of
-    Pi t s -> return ((t, s), trans)
+  case N.normalizeTerm ty of
+    C.Pi t s -> return ((t, s), trans)
     _ -> typeError "expected pi"
 
 inferUniverse :: TermI -> TC (TCResult Int)
 inferUniverse tm = do
   (ty, trans) <- inferType tm
-  -- TODO: incorrect, need to normalize before pattern matching
-  case ty of
-    Universe k -> return (k, trans)
+  case N.normalizeTerm ty of
+    C.Universe k -> return (k, trans)
     _ -> typeError "expected pi"
 
-inferType :: TermI -> TC (TCResult TermI)
-inferType (Universe k) = return (Universe (k + 1), C.Universe k)
+inferType :: TermI -> TC (TCResult C.Term)
+inferType (Universe k) = return (C.Universe (k + 1), C.Universe k)
 inferType (Var (Bound _)) = error "type checker found bound variable"
 inferType (Var (Free n)) = do
   ty <- lookupType n
@@ -88,49 +90,47 @@ inferType (Pi ty scope) = do
   (k1, tytrans) <- inferUniverse ty
   name <- freshVar
   let opened = instantiateI (Var (Free name)) scope
-  (k2, bodytrans) <- withContext name ty $ inferUniverse opened
-  return (Universe (max k1 k2), C.Pi tytrans (C.abstract name bodytrans))
+  (k2, bodytrans) <- withContext name tytrans $ inferUniverse opened
+  return (C.Universe (max k1 k2), C.Pi tytrans (C.abstract name bodytrans))
 inferType (App fun arg) = do
   ((piexpect, pibody), transfun) <- inferPi fun
   ((), transarg) <- checkType arg piexpect
-  return (instantiateI (Annotate arg piexpect) pibody, C.App transfun transarg)
+  return (C.instantiate transarg pibody, C.App transfun transarg)
 inferType (Annotate term ty) = do
-  (_univ, _transty) <- inferUniverse ty
-  ((), transterm) <- checkType term ty
-  return (ty, transterm)
+  (_univ, transty) <- inferUniverse ty
+  ((), transterm) <- checkType term transty
+  return (transty, transterm)
 
 inferType (Eq t1 t2) = do
   (ty1, trans1) <- inferType t1
   (ty2, trans2) <- inferType t2
   checkEqual ty1 ty2
-  (_univ, transty1) <- inferUniverse ty1
-  return (Universe 0, eq transty1 trans1 trans2)
+  k1 <- runCore (CT.inferUniverse ty1)
+  k2 <- runCore (CT.inferUniverse ty2)
+  when (k1 /= 0 || k2 /= 0) $ typeError "equality universe error"
+  return (C.Universe 0, eq ty1 trans1 trans2)
   where eq :: C.Term -> C.Term -> C.Term -> C.Term
         eq ty x y = ((C.Builtin C.Eq `C.App` ty) `C.App` x) `C.App` y
 
-checkEqual :: TermI -> TermI -> TC ()
-checkEqual e1 e2 = do
-  (_, transe1) <- inferType e1
-  (_, transe2) <- inferType e2
-  let norme1 = N.normalizeTerm transe1
-  let norme2 = N.normalizeTerm transe2
-  if norme1 == norme2
-    then return ()
-    else typeError "type mismatch"
+checkEqual :: C.Term -> C.Term -> TC ()
+checkEqual e1 e2
+  | norm1 == norm2 = return ()
+  | otherwise = typeError "type mismatch"
+  where norm1 = N.normalizeTerm e1
+        norm2 = N.normalizeTerm e2
 
-checkType :: TermC -> TermI -> TC (TCResult ())
+checkType :: TermC -> C.Term -> TC (TCResult ())
 checkType (Infer term) tyexpect = do
   (tyactual, transterm) <- inferType term
   checkEqual tyexpect tyactual
   return ((), transterm)
 
-checkType (Lambda scope) (Pi tyarg pibody) = do
+checkType (Lambda scope) (C.Pi tyarg pibody) = do
   name <- freshVar
-  (_univ, transtyarg) <- inferUniverse tyarg
   let openscope = instantiateC (Var (Free name)) scope
-  let openpibody = instantiateI (Var (Free name)) pibody
+  let openpibody = C.instantiate (C.Var (C.Free name)) pibody
   ((), transbody) <- withContext name tyarg (checkType openscope openpibody)
-  return ((), C.Lambda transtyarg (C.abstract name transbody))
+  return ((), C.Lambda tyarg (C.abstract name transbody))
 
 checkType (Lambda _) _ = typeError "non-pi type given to lambda for checking"
 
@@ -142,15 +142,23 @@ checkType (Let def scope) tyexpect = do
   ((), transbody) <- checkType (instantiateC def scope) tyexpect
   return ((), transbody)
 
-checkType Refl tyexpect = undefined
-  -- let normtyexpect = N.normalizeTerm tyexpect
-  -- case normtyexpect of
-  --   ((C.Builtin C.Eq `C.App` ty) `C.App` t1) `C.App` t2 -> do
-  --     checkEqual t1 t2
-  --     return ((), (C.Builtin C.Refl `C.App` ty) `C.App` t1)
-  --   _ -> typeError "refl expects equality type"
+checkType Refl tyexpect = do
+  let normtyexpect = N.normalizeTerm tyexpect
+  case normtyexpect of
+    ((C.Builtin C.Eq `C.App` ty) `C.App` t1) `C.App` t2 -> do
+      checkEqual t1 t2
+      return ((), (C.Builtin C.Refl `C.App` ty) `C.App` t1)
+    _ -> typeError "refl expects equality type"
 
-infer :: TermI -> Either Text (TermI, C.Term)
+-- run a core type checker action in the current context
+runCore :: CT.TC a -> TC a
+runCore act = TC $ do
+  ctxt <- ask
+  case CT.runWithContext ctxt act of
+    Left msg -> throwError msg
+    Right t -> return t
+
+infer :: TermI -> Either Text (C.Term, C.Term)
 infer tm = runIdentity (runVarSupplyT (runReaderT (runExceptT (runTC $ inferType tm)) initialContext))
   where initialContext :: Context
         initialContext = M.empty
