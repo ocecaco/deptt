@@ -43,7 +43,7 @@ normalize (LevelSucc t) = LevelSucc <$> normalize t
 normalize (LevelMax LevelZero lvl) = normalize lvl
 normalize (LevelMax lvl LevelZero) = normalize lvl
 normalize (LevelMax (LevelSucc t1) (LevelSucc t2)) = LevelSucc <$> normalize (LevelMax t1 t2)
-normalize (LevelMax _ _) = error "unexpected term in levelmax normalize"
+normalize tm@(LevelMax _ _) = return tm
 normalize (Let def _ scope) = normalize =<< (instantiate <$> normalize def <*> pure scope)
 normalize (App e1old e2old) = do
   e1norm <- normalize e1old
