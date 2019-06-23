@@ -1,9 +1,17 @@
-* Better pretty-printing
-* Use pretty-printing library instead of manually concatenating strings
-* Allow more flexible syntax in the parser ("multiple argument" binders)
-* Allow adding assumptions (probably using let definitions and a term for assuming)
-* Make the normalization more conservative (so you can still understand what you've proved)
-* Add tests for nat and eq
-* More informative error messages for type checking and parsing
-* Add uninhabited type, unit, (dependent) product, coproduct, lists, vectors of fixed size, etc.
-* Maybe switch to bidirectional type checking to allow less type annotations, and to allow more documentation by allowing type annotations in arbitrary places
+* Handle local definitions more sensibly: don't just inline
+  everything. Local definitions in the bidirectional language should
+  be turned into local definitions in the core language. Definitions
+  should not be expanded when clearly not necessary, although I don't
+  think it's necessary to be very clever about the expansion.
+* Use eta-equality as well to get a stronger judgmental equality.
+* Finish the bidirectional translation so all the data types I've
+  implemented can be used.
+* Write tests for everything.
+* Do some examples using setoids (maybe working with some mathematical
+  structures such as groups).
+* Improve type error messages (This should be easier with the new
+  approach to binding).
+* Make the parser/pretty printer work again once the language is
+  essentially finished.
+* Make it easy to add axioms/assumptions in order to develop
+  incomplete programs.
