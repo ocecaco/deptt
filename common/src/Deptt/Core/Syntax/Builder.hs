@@ -30,6 +30,10 @@ module Deptt.Core.Syntax.Builder
   , unitelim
   , void
   , voidelim
+  , level
+  , lzero
+  , lsucc
+  , lmax
   )
 where
 
@@ -45,8 +49,8 @@ forall name ty body = Pi ty (abstract name body)
 (+->) :: Term -> Term -> Term
 t1 +-> t2 = Pi t1 (abstract "__unused__" t2)
 
-type_ :: Int -> Term
-type_ = Universe
+type_ :: Term -> Term
+type_ lvl = Universe (Just lvl)
 
 v :: Text -> Term
 v name = Var (Free name)
@@ -125,6 +129,18 @@ void = Builtin Void
 
 voidelim :: Term
 voidelim = Builtin VoidElim
+
+level :: Term
+level = Level
+
+lzero :: Term
+lzero = LevelZero
+
+lsucc :: Term -> Term
+lsucc = LevelSucc
+
+lmax :: Term -> Term -> Term
+lmax = LevelMax
 
 infixl 9 @@
 infixr 8 +->

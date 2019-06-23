@@ -15,15 +15,15 @@ build-type:          Simple
 extra-source-files:  CHANGELOG.md
 
 library
-  exposed-modules:     Deptt.Bidirectional.TypeCheck
-                     , Deptt.Core.Syntax
+  exposed-modules:     Deptt.Core.Syntax
                      , Deptt.Core.Syntax.Builder
                      , Deptt.Core.TypeCheck
-                     , Deptt
+                     -- , Deptt
                      , Deptt.Core.Normalize
                      , Deptt.Util.VarSupply
-                     , Deptt.Bidirectional.Syntax
-                     , Deptt.Bidirectional.Syntax.Builder
+                     -- , Deptt.Bidirectional.TypeCheck
+                     -- , Deptt.Bidirectional.Syntax
+                     -- , Deptt.Bidirectional.Syntax.Builder
   other-extensions:    GeneralizedNewtypeDeriving
   build-depends:       base
                      , mtl

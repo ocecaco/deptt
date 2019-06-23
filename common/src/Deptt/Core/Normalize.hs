@@ -34,8 +34,16 @@ normalizeBuiltin _ _ = Nothing
 
 normalize :: Term -> Norm Term
 normalize tm@(Var _) = return tm
-normalize tm@(Universe _) = return tm
 normalize tm@(Builtin _) = return tm
+normalize tm@Level = return tm
+normalize tm@LevelZero = return tm
+normalize (Universe Nothing) = return (Universe Nothing)
+normalize (Universe (Just lvl)) = Universe . Just <$> normalize lvl
+normalize (LevelSucc t) = LevelSucc <$> normalize t
+normalize (LevelMax LevelZero lvl) = normalize lvl
+normalize (LevelMax lvl LevelZero) = normalize lvl
+normalize (LevelMax (LevelSucc t1) (LevelSucc t2)) = LevelSucc <$> normalize (LevelMax t1 t2)
+normalize (LevelMax _ _) = error "unexpected term in levelmax normalize"
 normalize (Let def _ scope) = normalize =<< (instantiate <$> normalize def <*> pure scope)
 normalize (App e1old e2old) = do
   e1norm <- normalize e1old
