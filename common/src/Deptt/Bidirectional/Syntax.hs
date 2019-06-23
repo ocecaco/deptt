@@ -1,10 +1,17 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE DeriveFunctor #-}
-module Deptt.Bidirectional.Syntax (inferType, instantiateC, instantiateI) where
+module Deptt.Bidirectional.Syntax (infer, instantiateC, instantiateI) where
 
 import Data.Text (Text)
-import Control.Monad.Identity (Identity)
+import qualified Data.Text as T
+import Control.Monad.Identity (Identity, runIdentity)
+import Control.Monad.Except (ExceptT, MonadError(..), runExceptT)
+import Control.Monad.Reader (ReaderT, MonadReader(..), runReaderT)
+import Control.Monad.Trans (lift)
+import Data.Map.Strict (Map)
+import qualified Data.Map.Strict as M
+import Deptt.Util.VarSupply (VarSupplyT, runVarSupplyT, fresh)
 import qualified Deptt.Core.Syntax as C
 import qualified Deptt.Core.Normalize as N
 
@@ -30,7 +37,11 @@ data TermI = Var Var
 newtype Scope a = Scope a
                 deriving (Eq, Ord, Show)
 
-newtype TC a = TC (Identity a)
+-- TODO: might not be necessary to keep the context since we can just
+-- store the type in the generated free variables themselves
+type Context = Map Text C.Term
+
+newtype TC a = TC { runTC :: ExceptT Text (ReaderT Context (VarSupplyT Identity)) a }
              deriving (Functor, Applicative, Monad)
 
 type TCResult a = (a, C.Term)
@@ -65,16 +76,23 @@ instantiateScopeC' :: TermI -> Int -> Scope TermC -> Scope TermC
 instantiateScopeC' sub i (Scope t) = Scope (instantiateC' sub (i + 1) t)
 
 withContext :: Text -> C.Term -> TC a -> TC a
-withContext = undefined
+withContext name ty (TC act) = TC (local (M.insert name ty) act)
 
-getVarType :: Text -> TC C.Term
-getVarType = undefined
+lookupType :: Text -> TC C.Term
+lookupType name = TC $ do
+  ctxt <- ask
+  case M.lookup name ctxt of
+    Just ty -> return ty
+    Nothing -> error "lookupType: missing name in environment"
 
 typeError :: Text -> TC a
-typeError = undefined
+typeError msg = TC (throwError msg)
 
+-- TODO: the (lift . lift) stuff is ugly
 freshVar :: TC Text
-freshVar = undefined
+freshVar = TC $ lift . lift $ do
+  i <- fresh
+  return $ "__elaborator_" <> T.pack (show i)
 
 inferPi :: TermI -> TC (TCResult (C.Term, C.Scope))
 inferPi tm = do
@@ -94,7 +112,7 @@ inferType :: TermI -> TC (TCResult C.Term)
 inferType (Universe k) = return (C.Universe (k + 1), C.Universe k)
 inferType (Var (Bound _)) = error "type checker found bound variable"
 inferType (Var (Free n)) = do
-  ty <- getVarType n
+  ty <- lookupType n
   return (ty, C.Var (C.Free n))
 inferType (Pi ty scope) = do
   (k1, tytrans) <- inferUniverse ty
@@ -156,3 +174,8 @@ checkType Refl tyexpect = do
       checkEqual t1 t2
       return ((), (C.Builtin C.Refl `C.App` ty) `C.App` t1)
     _ -> typeError "refl expects equality type"
+
+infer :: TermI -> Either Text (C.Term, C.Term)
+infer tm = runIdentity (runVarSupplyT (runReaderT (runExceptT (runTC $ inferType tm)) initialContext))
+  where initialContext :: Context
+        initialContext = M.empty
