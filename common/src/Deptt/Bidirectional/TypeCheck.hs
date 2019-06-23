@@ -13,7 +13,6 @@ import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as M
 import Deptt.Util.VarSupply (VarSupplyT, runVarSupplyT, fresh)
 import qualified Deptt.Core.Syntax as C
-import qualified Deptt.Core.Normalize as N
 
 -- This type checker outputs a type (TermI) and a
 -- translated/elaborated core language term (C.Term). The reason it
