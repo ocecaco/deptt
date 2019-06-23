@@ -15,6 +15,13 @@ import Deptt.Util.VarSupply (VarSupplyT, runVarSupplyT, fresh)
 import qualified Deptt.Core.Syntax as C
 import qualified Deptt.Core.Normalize as N
 
+-- This type checker outputs a type (TermI) and a
+-- translated/elaborated core language term (C.Term). The reason it
+-- outputs types as TermI instead already translating them to C.Term
+-- as well is that by keeping the types as TermI, we can use them
+-- inputs to the type checker again (say we want to check the universe
+-- of a type we have computed).
+
 -- TODO: might not be necessary to keep the context since we can just
 -- store the type in the generated free variables themselves
 type Context = Map Text TermI
@@ -74,7 +81,7 @@ inferType (App fun arg) = do
   ((), transarg) <- checkType arg piexpect
   return (instantiateI (Annotate arg piexpect) pibody, C.App transfun transarg)
 inferType (Annotate term ty) = do
-  (_univ, transty) <- inferUniverse ty
+  (_univ, _transty) <- inferUniverse ty
   ((), transterm) <- checkType term ty
   return (ty, transterm)
 
