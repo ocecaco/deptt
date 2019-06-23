@@ -63,7 +63,7 @@ builtinType Snd = forlvl $ forall "A" (type_ lvl) (forall "P" (v "A" +-> type_ l
 builtinType Or = forlvl $ type_ lvl +-> type_ lvl +-> type_ lvl
 builtinType InL = forlvl $ forall "A" (type_ lvl) (forall "B" (type_ lvl) (v "A" +-> or_ @@ lvl @@ v "A" @@ v "B"))
 builtinType InR = forlvl $ forall "A" (type_ lvl) (forall "B" (type_ lvl) (v "B" +-> or_ @@ lvl @@ v "A" @@ v "B"))
-builtinType OrElim = forlvl $ forall "A" (type_ lvl) (forall "B" (type_ lvl) (forall "P" (or_ @@ lvl @@ v "A" @@ v "B" +-> type_ lvl) ((forall "a" (v "A") (v "P" @@ (inl @@ lvl @@ v "A" @@ v "B" @@ v "a"))) +-> (forall "b" (v "B") (v "P" @@ (inr @@ lvl @@ v "A" @@ v "B" @@ v "b"))) +-> forall "s" (or_ @@ lvl @@ v "A" @@ v "B") (v "P" @@ v "s"))))
+builtinType OrElim = forlvl $ forall "A" (type_ lvl) (forall "B" (type_ lvl) (forall "P" (or_ @@ lvl @@ v "A" @@ v "B" +-> type_ lvl) (forall "a" (v "A") (v "P" @@ (inl @@ lvl @@ v "A" @@ v "B" @@ v "a")) +-> (forall "b" (v "B") (v "P" @@ (inr @@ lvl @@ v "A" @@ v "B" @@ v "b"))) +-> forall "s" (or_ @@ lvl @@ v "A" @@ v "B") (v "P" @@ v "s"))))
 
 builtinType And = forlvl $ type_ lvl +-> type_ lvl +-> type_ lvl
 builtinType Pair = forlvl $ forall "A" (type_ lvl) (forall "B" (type_ lvl) (v "A" +-> v "B" +-> and_ @@ lvl @@ v "A" @@ v "B"))
@@ -137,7 +137,7 @@ inferUniverse tm = do
   case norm of
     Universe (Just k) -> checkLevel k >> return (Just k)
     Universe Nothing -> return Nothing
-    _ -> typeError "expected universe"
+    _ -> typeError $ "expected universe, got " <> T.pack (show norm)
 
 checkEqual :: Term -> Term -> TC ()
 checkEqual e1 e2
