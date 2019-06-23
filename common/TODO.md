@@ -1,3 +1,6 @@
+* Potentially get rid of the explicit context by having free variables
+  store their own type. This should be very easy with the way I handle
+  binding now.
 * Handle local definitions more sensibly: don't just inline
   everything. Local definitions in the bidirectional language should
   be turned into local definitions in the core language. Definitions
