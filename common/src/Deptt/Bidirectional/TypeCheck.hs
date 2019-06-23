@@ -9,6 +9,7 @@ import Control.Monad.Identity (Identity, runIdentity)
 import Control.Monad.Except (ExceptT, MonadError(..), runExceptT)
 import Control.Monad.Reader (ReaderT, MonadReader(..), runReaderT)
 import Control.Monad.Trans (lift)
+import Control.Applicative (liftA2)
 import Control.Monad (when)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as M
@@ -16,6 +17,7 @@ import Deptt.Util.VarSupply (VarSupplyT, runVarSupplyT, fresh)
 import qualified Deptt.Core.Syntax as C
 import qualified Deptt.Core.Normalize as N
 import qualified Deptt.Core.TypeCheck as CT
+import Data.Maybe (fromJust)
 
 -- TODO: Less wrapping/unwrapping using TC
 
@@ -66,6 +68,12 @@ freshVar = TC $ lift . lift $ do
   i <- fresh
   return $ "__elaborator_" <> T.pack (show i)
 
+intToLevel :: Int -> C.Term
+intToLevel k
+  | k == 0 = C.LevelZero
+  | k > 0 = C.LevelSucc (intToLevel (k - 1))
+  | otherwise = error "negative k in intToLevel"
+
 inferPi :: TermI -> TC (TCResult (C.Term, C.Scope))
 inferPi tm = do
   (ty, trans) <- inferType tm
@@ -73,15 +81,19 @@ inferPi tm = do
     C.Pi t s -> return ((t, s), trans)
     _ -> typeError "expected pi"
 
-inferUniverse :: TermI -> TC (TCResult Int)
+inferUniverse :: TermI -> TC (TCResult (Maybe C.Term))
 inferUniverse tm = do
   (ty, trans) <- inferType tm
   case N.normalizeTerm ty of
     C.Universe k -> return (k, trans)
     _ -> typeError "expected pi"
 
+universeMax :: Maybe C.Term -> Maybe C.Term -> Maybe C.Term
+universeMax = liftA2 C.LevelMax
+
 inferType :: TermI -> TC (TCResult C.Term)
-inferType (Universe k) = return (C.Universe (k + 1), C.Universe k)
+inferType (Universe k) = return (C.Universe (Just (C.LevelSucc k')), C.Universe (Just k'))
+  where k' = intToLevel k
 inferType (Var (Bound _)) = error "type checker found bound variable"
 inferType (Var (Free n)) = do
   ty <- lookupType n
@@ -91,7 +103,7 @@ inferType (Pi ty scope) = do
   name <- freshVar
   let opened = instantiateI (Var (Free name)) scope
   (k2, bodytrans) <- withContext name tytrans $ inferUniverse opened
-  return (C.Universe (max k1 k2), C.Pi tytrans (C.abstract name bodytrans))
+  return (C.Universe (universeMax k1 k2), C.Pi tytrans (C.abstract name bodytrans))
 inferType (App fun arg) = do
   ((piexpect, pibody), transfun) <- inferPi fun
   ((), transarg) <- checkType arg piexpect
@@ -105,12 +117,10 @@ inferType (Eq t1 t2) = do
   (ty1, trans1) <- inferType t1
   (ty2, trans2) <- inferType t2
   checkEqual ty1 ty2
-  k1 <- runCore (CT.inferUniverse ty1)
-  k2 <- runCore (CT.inferUniverse ty2)
-  when (k1 /= 0 || k2 /= 0) $ typeError "equality universe error"
-  return (C.Universe 0, eq ty1 trans1 trans2)
-  where eq :: C.Term -> C.Term -> C.Term -> C.Term
-        eq ty x y = ((C.Builtin C.Eq `C.App` ty) `C.App` x) `C.App` y
+  univ1 <- runCore $ CT.inferUniverse ty1
+  return (C.Universe univ1, eq (fromJust univ1) ty1 trans1 trans2)
+  where eq :: C.Term -> C.Term -> C.Term -> C.Term -> C.Term
+        eq lvl ty x y = (((C.Builtin C.Eq `C.App` lvl) `C.App` ty) `C.App` x) `C.App` y
 
 checkEqual :: C.Term -> C.Term -> TC ()
 checkEqual e1 e2
@@ -145,9 +155,9 @@ checkType (Let def scope) tyexpect = do
 checkType Refl tyexpect = do
   let normtyexpect = N.normalizeTerm tyexpect
   case normtyexpect of
-    ((C.Builtin C.Eq `C.App` ty) `C.App` t1) `C.App` t2 -> do
+    (((C.Builtin C.Eq `C.App` lvl) `C.App` ty) `C.App` t1) `C.App` t2 -> do
       checkEqual t1 t2
-      return ((), (C.Builtin C.Refl `C.App` ty) `C.App` t1)
+      return ((), ((C.Builtin C.Refl `C.App` lvl) `C.App` ty) `C.App` t1)
     _ -> typeError "refl expects equality type"
 
 -- run a core type checker action in the current context

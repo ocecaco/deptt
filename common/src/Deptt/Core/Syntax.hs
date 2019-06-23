@@ -59,7 +59,7 @@ data Builtin = Nat
 
              | Void
              | VoidElim
-             deriving (Eq, Ord, Show)
+             deriving (Eq, Ord, Show, Enum, Bounded)
 
 -- names of bound variables are ignored during equality comparison
 -- since we are using de Bruijn indices (although the name does get
