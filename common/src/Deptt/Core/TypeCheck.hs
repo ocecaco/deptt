@@ -1,6 +1,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Deptt.Core.TypeCheck (typeCheck, runWithContext, inferType, inferPi, inferUniverse, Context, TC) where
+module Deptt.Core.TypeCheck (typeCheck, runWithContext, inferType, inferPi, inferUniverse, Context, TC, builtinType) where
 
 import Deptt.Core.Syntax (Var(..), Term(..), Scope, Builtin(..), abstract, instantiate)
 import Deptt.Core.Syntax.Builder
@@ -38,40 +38,44 @@ lookupType name = TC $ do
     Just ty -> return ty
     Nothing -> error "lookupType: missing name in environment"
 
-type0 :: Term
-type0 = type_ lzero
+forlvl :: Term -> Term
+forlvl body = forall "lvl" level body
+
+lvl :: Term
+lvl = v "lvl"
 
 builtinType :: Builtin -> Term
-builtinType Nat = type0
+builtinType Nat = type_ lzero
 builtinType Zero = nat
 builtinType Succ = nat +-> nat
-builtinType NatElim = forall "P" (nat +-> type0) (v "P" @@ zero +-> forall "k" nat (v "P" @@ v "k" +-> v "P" @@ (succ_ @@ v "k")) +-> forall "n" nat (v "P" @@ v "n"))
+builtinType NatElim = forlvl $ forall "P" (nat +-> type_ lvl) (v "P" @@ zero +-> forall "k" nat (v "P" @@ v "k" +-> v "P" @@ (succ_ @@ v "k")) +-> forall "n" nat (v "P" @@ v "n"))
 
-builtinType Eq = forall "A" (type0) (v "A" +-> v "A" +-> type0)
-builtinType Refl = forall "A" (type0) (forall "x" (v "A") (eq @@ v "A" @@ v "x" @@ v "x"))
-builtinType EqElim = forall "A" (type0) (forall "x" (v "A") (forall "P" (v "A" +-> type0) (v "P" @@ v "x" +-> forall "y" (v "A") (eq @@ v "A" @@ v "x" @@ v "y" +-> v "P" @@ v "y"))))
+builtinType Eq = forlvl $ forall "A" (type_ lvl) (v "A" +-> v "A" +-> type_ lvl)
+builtinType Refl = forlvl $ forall "A" (type_ lvl) (forall "x" (v "A") (eq @@ lvl @@ v "A" @@ v "x" @@ v "x"))
+builtinType EqElim = forlvl $ forall "A" (type_ lvl) (forall "x" (v "A") (forall "P" (v "A" +-> type_ lvl) (v "P" @@ v "x" +-> forall "y" (v "A") (eq @@ lvl @@ v "A" @@ v "x" @@ v "y" +-> v "P" @@ v "y"))))
 
-builtinType Ex = forall "A" (type0) ((v "A" +-> type0) +-> type0)
-builtinType Pack = forall "A" (type0) (forall "P" (v "A" +-> type0) (forall "x" (v "A") (v "P" @@ v "x" +-> ex @@ v"A" @@ v "P")))
-builtinType Fst = forall "A" (type0) (forall "P" (v "A" +-> type0) (ex @@ v "A" @@ v "P" +-> v "A"))
-builtinType Snd = forall "A" (type0) (forall "P" (v "A" +-> type0) (forall "H" (ex @@ v "A" @@ v "P") (v "P" @@ (fst_ @@ v "A" @@ v "P" @@ v "H"))))
+-- TODO: more flexible levels
+builtinType Ex = forlvl $ forall "A" (type_ lvl) ((v "A" +-> type_ lvl) +-> type_ lvl)
+builtinType Pack = forlvl $ forall "A" (type_ lvl) (forall "P" (v "A" +-> type_ lvl) (forall "x" (v "A") (v "P" @@ v "x" +-> ex @@ lvl @@ v"A" @@ v "P")))
+builtinType Fst = forlvl $ forall "A" (type_ lvl) (forall "P" (v "A" +-> type_ lvl) (ex @@ lvl @@ v "A" @@ v "P" +-> v "A"))
+builtinType Snd = forlvl $ forall "A" (type_ lvl) (forall "P" (v "A" +-> type_ lvl) (forall "H" (ex @@ lvl @@ v "A" @@ v "P") (v "P" @@ (fst_ @@ lvl @@ v "A" @@ v "P" @@ v "H"))))
 
-builtinType Or = type0 +-> type0 +-> type0
-builtinType InL = forall "A" (type0) (forall "B" (type0) (v "A" +-> or_ @@ v "A" @@ v "B"))
-builtinType InR = forall "A" (type0) (forall "B" (type0) (v "B" +-> or_ @@ v "A" @@ v "B"))
-builtinType OrElim = forall "A" (type0) (forall "B" (type0) (forall "P" (or_ @@ v "A" @@ v "B" +-> type0) ((forall "a" (v "A") (v "P" @@ (inl @@ v "A" @@ v "B" @@ v "a"))) +-> (forall "b" (v "B") (v "P" @@ (inl @@ v "A" @@ v "B" @@ v "b"))) +-> forall "s" (or_ @@ v "A" @@ v "B") (v "P" @@ v "s"))))
+builtinType Or = forlvl $ type_ lvl +-> type_ lvl +-> type_ lvl
+builtinType InL = forlvl $ forall "A" (type_ lvl) (forall "B" (type_ lvl) (v "A" +-> or_ @@ lvl @@ v "A" @@ v "B"))
+builtinType InR = forlvl $ forall "A" (type_ lvl) (forall "B" (type_ lvl) (v "B" +-> or_ @@ lvl @@ v "A" @@ v "B"))
+builtinType OrElim = forlvl $ forall "A" (type_ lvl) (forall "B" (type_ lvl) (forall "P" (or_ @@ lvl @@ v "A" @@ v "B" +-> type_ lvl) ((forall "a" (v "A") (v "P" @@ (inl @@ lvl @@ v "A" @@ v "B" @@ v "a"))) +-> (forall "b" (v "B") (v "P" @@ (inr @@ lvl @@ v "A" @@ v "B" @@ v "b"))) +-> forall "s" (or_ @@ lvl @@ v "A" @@ v "B") (v "P" @@ v "s"))))
 
-builtinType And = type0 +-> type0 +-> type0
-builtinType Pair = forall "A" (type0) (forall "B" (type0) (v "A" +-> v "B" +-> and_ @@ v "A" @@ v "B"))
-builtinType Proj1 = forall "A" (type0) (forall "B" (type0) (and_ @@ v "A" @@ v "B" +-> v "A"))
-builtinType Proj2 = forall "A" (type0) (forall "B" (type0) (and_ @@ v "A" @@ v "B" +-> v "B"))
+builtinType And = forlvl $ type_ lvl +-> type_ lvl +-> type_ lvl
+builtinType Pair = forlvl $ forall "A" (type_ lvl) (forall "B" (type_ lvl) (v "A" +-> v "B" +-> and_ @@ lvl @@ v "A" @@ v "B"))
+builtinType Proj1 = forlvl $ forall "A" (type_ lvl) (forall "B" (type_ lvl) (and_ @@ lvl @@ v "A" @@ v "B" +-> v "A"))
+builtinType Proj2 = forlvl $ forall "A" (type_ lvl) (forall "B" (type_ lvl) (and_ @@ lvl @@ v "A" @@ v "B" +-> v "B"))
 
-builtinType Unit = type0
-builtinType Tt = unit
-builtinType UnitElim = forall "P" (unit +-> type0) (v "P" @@ tt +-> forall "u" unit (v "P" @@ v "u"))
+builtinType Unit = forlvl $ type_ lvl
+builtinType Tt = forlvl $ unit @@ lvl
+builtinType UnitElim = forlvl $ forall "P" (unit @@ lvl +-> type_ lvl) (v "P" @@ (tt @@ lvl) +-> forall "u" (unit @@ lvl) (v "P" @@ v "u"))
 
-builtinType Void = type0
-builtinType VoidElim = forall "P" (void +-> type0) (forall "e" void (v "P" @@ v "e"))
+builtinType Void = forlvl $ type_ lvl
+builtinType VoidElim = forlvl $ forall "P" (void @@ lvl +-> type_ lvl) (forall "e" (void @@ lvl) (v "P" @@ v "e"))
 
 checkLevel :: Term -> TC ()
 checkLevel t = do
