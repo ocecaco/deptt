@@ -22,6 +22,18 @@ import qualified Deptt.Core.Normalize as N
 -- inputs to the type checker again (say we want to check the universe
 -- of a type we have computed).
 
+-- Thought: Defining a normalization function that works on
+-- bidirectional annotated terms is probably not going to work, since
+-- the annotations might be in different places for essentially
+-- beta-equal terms, and getting rid of the annotations would mean
+-- that you might replace an inferable term by a checkable term.
+
+-- Having the type checker output C.Term as types is also a bit
+-- problematic, since it means we can no longer run this type checker
+-- on the outputted types (we would have to use the core type checker
+-- for that). This is somewhat complicated, since the core type
+-- checker would not have access to our context in that case.
+
 -- TODO: might not be necessary to keep the context since we can just
 -- store the type in the generated free variables themselves
 type Context = Map Text TermI
@@ -97,13 +109,14 @@ inferType (Eq t1 t2) = do
         eq ty x y = ((C.Builtin C.Eq `C.App` ty) `C.App` x) `C.App` y
 
 checkEqual :: TermI -> TermI -> TC ()
-checkEqual e1 e2 = undefined
-  -- (_, transe1) <- inferType e1
-  -- (_, transe2) <- inferType e2
-  -- | norme1 == norme2 = return ()
-  -- | otherwise = typeError "type mismatch"
-  -- where norme1 = N.normalizeTerm e1
-  --       norme2 = N.normalizeTerm e2
+checkEqual e1 e2 = do
+  (_, transe1) <- inferType e1
+  (_, transe2) <- inferType e2
+  let norme1 = N.normalizeTerm transe1
+  let norme2 = N.normalizeTerm transe2
+  if norme1 == norme2
+    then return ()
+    else typeError "type mismatch"
 
 checkType :: TermC -> TermI -> TC (TCResult ())
 checkType (Infer term) tyexpect = do
