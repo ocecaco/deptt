@@ -3,7 +3,7 @@
 module Deptt.Core.TypeCheck (typeCheck, runWithContext, inferType, inferPi, inferUniverse, Context, TC, builtinType) where
 
 import Deptt.Core.Syntax (Var(..), Term(..), Builtin(..), Scope, abstract, instantiate)
-import Deptt.Core.Syntax.Builder (universeTop, lmax, (@@))
+import Deptt.Core.Syntax.Builder (universeTop, lmax, (@@), type_)
 import Deptt.Core.TypeCheck.Builtin (builtinType)
 import Deptt.Core.Normalize (normalizeTerm)
 import Control.Applicative (liftA2)
@@ -56,7 +56,7 @@ inferType (Pi ty scope) = do
   name <- freshVar
   let opened = instantiate (Var (Free name)) scope
   k2 <- withContext name ty (inferUniverse opened)
-  return $ fromMaybe universeTop $ liftA2 (\x y -> lmax @@ x @@ y) k1 k2
+  return $ fromMaybe universeTop $ liftA2 (\x y -> type_ (lmax @@ x @@ y)) k1 k2
 inferType (Lambda ty scope) = do
   -- although we do not use the universe of the type, we still have to
   -- make sure it is well-typed itself

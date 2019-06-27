@@ -6,6 +6,7 @@ import Deptt.Util.VarSupply (VarSupplyT, fresh, runVarSupplyT)
 import Control.Monad.Identity (Identity, runIdentity)
 import Deptt.Core.Syntax (Var(..), Term(..), Builtin(..), Scope, abstract, instantiate)
 import Deptt.Core.Syntax.Builder
+import Deptt.Core.Normalize.Level (normalizeLevel)
 import Data.Text (Text)
 import qualified Data.Text as T
 
@@ -28,6 +29,8 @@ normalizeBuiltin (Builtin EqElim :@ _A :@ _x :@ _P :@ px :@ _y :@ (Builtin Refl 
 normalizeBuiltin (Builtin Proj1 :@ _A1 :@ _B1 :@ (Builtin Pair :@ _A :@ _B :@ x :@ _y)) = Just (return x)
 normalizeBuiltin (Builtin Proj2 :@ _A1 :@ _B1 :@ (Builtin Pair :@ _A :@ _B :@ _x :@ y)) = Just (return y)
 normalizeBuiltin (Builtin UnitElim :@ _P :@ ptt :@ Builtin Tt) = Just (return ptt)
+normalizeBuiltin t@(Builtin LevelSucc :@ _) = Just . return $ normalizeLevel t
+normalizeBuiltin t@(Builtin LevelMax :@ _ :@ _) = Just . return $ normalizeLevel t
 normalizeBuiltin _ = Nothing
 
 normalize :: Term -> Norm Term

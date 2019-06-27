@@ -22,6 +22,7 @@ library
                      , Deptt.Core.TypeCheck.Builtin
                      , Deptt
                      , Deptt.Core.Normalize
+                     , Deptt.Core.Normalize.Level
                      , Deptt.Util.VarSupply
                      -- , Deptt.Bidirectional.TypeCheck
                      -- , Deptt.Bidirectional.Syntax
