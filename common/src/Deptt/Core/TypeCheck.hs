@@ -90,7 +90,7 @@ inferUniverse tm = do
 checkEqual :: Term -> Term -> TC ()
 checkEqual e1 e2
   | norme1 == norme2 = return ()
-  | otherwise = typeError $ "type mismatch" <> T.pack (show norme1) <> " " <> T.pack (show norme2)
+  | otherwise = typeError $ "type mismatch: " <> T.pack (show norme1) <> " and " <> T.pack (show norme2)
   where norme1 = normalizeTerm e1
         norme2 = normalizeTerm e2
 

@@ -38,7 +38,7 @@ builtinType Snd = Just $ forlvl "lvl1" $ forlvl "lvl2" $ forall "A" (type_ lvl1)
 builtinType Or = Just $ forlvl "lvl1" $ forlvl "lvl2" $ type_ lvl1 +-> type_ lvl2 +-> type_ (lmax @@ lvl1 @@ lvl2)
 builtinType InL = Just $ forlvl "lvl1" $ forlvl "lvl2" $ forall "A" (type_ lvl1) (forall "B" (type_ lvl2) (v "A" +-> or_ @@ lvl1 @@ lvl2 @@ v "A" @@ v "B"))
 builtinType InR = Just $ forlvl "lvl1" $ forlvl "lvl2" $ forall "A" (type_ lvl1) (forall "B" (type_ lvl2) (v "B" +-> or_ @@ lvl1 @@ lvl2 @@ v "A" @@ v "B"))
-builtinType OrElim = Just $ forlvl "lvl1" $ forlvl "lvl2" $ forlvl "lvl3" $ forall "A" (type_ lvl1) $ forall "B" (type_ lvl2) $ forall "P" (or_ @@ lvl1 @@ lvl2 @@ v "A" @@ v "B" +-> type_ lvl3) $ forall "a" (v "A") $ v "P" @@ (inl @@ lvl1 @@ lvl2 @@ v "A" @@ v "B" @@ v "a") +-> (forall "b" (v "B") (v "P" @@ (inr @@ lvl1 @@ lvl2 @@ v "A" @@ v "B" @@ v "b"))) +-> forall "s" (or_ @@ lvl1 @@ lvl2 @@ v "A" @@ v "B") (v "P" @@ v "s")
+builtinType OrElim = Just $ forlvl "lvl1" $ forlvl "lvl2" $ forlvl "lvl3" $ forall "A" (type_ lvl1) $ forall "B" (type_ lvl2) $ forall "P" (or_ @@ lvl1 @@ lvl2 @@ v "A" @@ v "B" +-> type_ lvl3) $ (forall "a" (v "A") $ v "P" @@ (inl @@ lvl1 @@ lvl2 @@ v "A" @@ v "B" @@ v "a")) +-> (forall "b" (v "B") (v "P" @@ (inr @@ lvl1 @@ lvl2 @@ v "A" @@ v "B" @@ v "b"))) +-> forall "s" (or_ @@ lvl1 @@ lvl2 @@ v "A" @@ v "B") (v "P" @@ v "s")
 
 builtinType And = Just $ forlvl "lvl1" $ forlvl "lvl2" $ type_ lvl1 +-> type_ lvl2 +-> type_ (lmax @@ lvl1 @@ lvl2)
 builtinType Pair = Just $ forlvl "lvl1" $ forlvl "lvl2" $ forall "A" (type_ lvl1) (forall "B" (type_ lvl2) (v "A" +-> v "B" +-> and_ @@ lvl1 @@ lvl2 @@ v "A" @@ v "B"))
