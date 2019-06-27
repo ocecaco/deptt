@@ -19,16 +19,16 @@ freshVar = Norm $ do
   return $ "__normalize_" <> T.pack (show i)
 
 normalizeBuiltin :: Term -> Maybe (Norm Term)
-normalizeBuiltin (Builtin NatElim :@ _ :@ nbase :@ _ :@ Builtin Zero) = Just (return nbase)
-normalizeBuiltin (Builtin NatElim :@ nprop :@ nbase :@ nind :@ (Builtin Succ :@ k)) = Just (normalize (nind :@ k :@ (natelim @@ nprop @@ nbase @@ nind @@ k)))
-normalizeBuiltin (Builtin Fst :@ _ :@ _ :@ (Builtin Pack :@ _ :@ _ :@ x :@ _)) = Just (return x)
-normalizeBuiltin (Builtin Snd :@ _ :@ _ :@ (Builtin Pack :@ _ :@ _ :@ _ :@ y)) = Just (return y)
-normalizeBuiltin (Builtin OrElim :@ _A :@ _B :@ _P :@ left :@ _right :@ (Builtin InL :@ _A2 :@ _B2 :@ x)) = Just (normalize (left :@ x))
-normalizeBuiltin (Builtin OrElim :@ _A :@ _B :@ _P :@ _left :@ right :@ (Builtin InR :@ _A2 :@ _B2 :@ y)) = Just (normalize (right :@ y))
-normalizeBuiltin (Builtin EqElim :@ _A :@ _x :@ _P :@ px :@ _y :@ (Builtin Refl :@ _A2 :@ _x2)) = Just (return px)
-normalizeBuiltin (Builtin Proj1 :@ _A1 :@ _B1 :@ (Builtin Pair :@ _A :@ _B :@ x :@ _y)) = Just (return x)
-normalizeBuiltin (Builtin Proj2 :@ _A1 :@ _B1 :@ (Builtin Pair :@ _A :@ _B :@ _x :@ y)) = Just (return y)
-normalizeBuiltin (Builtin UnitElim :@ _P :@ ptt :@ Builtin Tt) = Just (return ptt)
+normalizeBuiltin (Builtin NatElim :@ _lvl :@ _ :@ nbase :@ _ :@ Builtin Zero) = Just (return nbase)
+normalizeBuiltin (Builtin NatElim :@ lvl :@ nprop :@ nbase :@ nind :@ (Builtin Succ :@ k)) = Just (normalize (nind :@ k :@ (natelim @@ lvl @@ nprop @@ nbase @@ nind @@ k)))
+normalizeBuiltin (Builtin Fst :@ _lvl :@ _ :@ _ :@ (Builtin Pack :@ _lvl2 :@ _ :@ _ :@ x :@ _)) = Just (return x)
+normalizeBuiltin (Builtin Snd :@ _lvl :@ _ :@ _ :@ (Builtin Pack :@ _lvl2 :@ _ :@ _ :@ _ :@ y)) = Just (return y)
+normalizeBuiltin (Builtin OrElim :@ _lvl :@ _A :@ _B :@ _P :@ left :@ _right :@ (Builtin InL :@ _lvl2 :@ _A2 :@ _B2 :@ x)) = Just (normalize (left :@ x))
+normalizeBuiltin (Builtin OrElim :@ _lvl :@ _A :@ _B :@ _P :@ _left :@ right :@ (Builtin InR :@ _lvl2 :@ _A2 :@ _B2 :@ y)) = Just (normalize (right :@ y))
+normalizeBuiltin (Builtin EqElim :@ _lvl :@ _A :@ _x :@ _P :@ px :@ _y :@ (Builtin Refl :@ _lvl2 :@ _A2 :@ _x2)) = Just (return px)
+normalizeBuiltin (Builtin Proj1 :@ _lvl :@ _A1 :@ _B1 :@ (Builtin Pair :@ _lvl2 :@ _A :@ _B :@ x :@ _y)) = Just (return x)
+normalizeBuiltin (Builtin Proj2 :@ _lvl :@ _A1 :@ _B1 :@ (Builtin Pair :@ _lvl2 :@ _A :@ _B :@ _x :@ y)) = Just (return y)
+normalizeBuiltin (Builtin UnitElim :@ _lvl :@ _P :@ ptt :@ Builtin Tt) = Just (return ptt)
 normalizeBuiltin t@(Builtin LevelSucc :@ _) = Just . return $ normalizeLevel t
 normalizeBuiltin t@(Builtin LevelMax :@ _ :@ _) = Just . return $ normalizeLevel t
 normalizeBuiltin _ = Nothing
