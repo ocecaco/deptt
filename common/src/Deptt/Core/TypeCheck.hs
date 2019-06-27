@@ -69,7 +69,7 @@ inferType (Lambda ty scope) = do
 -- here, we check if the type of the argument matches the type
 -- expected by the function. the type of the result is then obtained by
 -- substituting the argument term into the pi-type.
-inferType (App e1 e2) = do
+inferType (e1 :@ e2) = do
   (tyexpect, scope) <- inferPi e1
   tyarg <- inferType e2
   checkEqual tyexpect tyarg
@@ -83,9 +83,9 @@ inferUniverse tm = do
   ty <- inferType tm
   let norm = normalizeTerm ty
   case norm of
-    Builtin Universe `App` lvl -> return (Just lvl)
+    Builtin Universe :@ lvl -> return (Just lvl)
     Builtin UniverseTop -> return Nothing
-    _ -> typeError "expected universe"
+    _ -> typeError $ "expected universe, got " <> T.pack (show norm)
 
 checkEqual :: Term -> Term -> TC ()
 checkEqual e1 e2

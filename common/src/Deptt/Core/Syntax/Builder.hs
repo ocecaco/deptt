@@ -57,7 +57,7 @@ v :: Text -> Term
 v name = Var (Free name)
 
 (@@) :: Term -> Term -> Term
-t1 @@ t2 = App t1 t2
+t1 @@ t2 = t1 :@ t2
 
 nat :: Term
 nat = Builtin Nat

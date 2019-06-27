@@ -21,4 +21,6 @@ typeCheckerTests = testGroup "Type checker"
           Left msg -> assertFailure (T.unpack msg)
           Right _ -> return ()
 
-        makeTestCase builtin = testCase ("Builtin type " <> show builtin) $ typeChecks (builtinType builtin)
+        makeTestCase builtin = testCase ("Builtin type " <> show builtin) $ case builtinType builtin of
+          Nothing -> return ()
+          Just ty -> typeChecks ty

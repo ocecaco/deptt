@@ -12,10 +12,12 @@ data Term = Var Var
           | Pi Term Scope
           | Lambda Term Scope
           | Let Term Term Scope
-          | App Term Term
+          | Term :@ Term
 
           | Builtin Builtin
           deriving (Eq, Ord, Show)
+
+infixl 8 :@
 
 data Scope = Scope Term
               deriving (Ord, Show)
@@ -75,7 +77,7 @@ abstract name fullTerm = Scope (go 0 fullTerm)
         go i t@(Var (Free n))
           | name == n = Var (Bound i)
           | otherwise = t
-        go i (App t1 t2) = App (go i t1) (go i t2)
+        go i (t1 :@ t2) = go i t1 :@ go i t2
         go i (Pi ty scope) = Pi (go i ty) (goScope i scope)
         go i (Lambda ty scope) = Lambda (go i ty) (goScope i scope)
         go i (Let def ty scope) = Let (go i def) (go i ty) (goScope i scope)
@@ -93,7 +95,7 @@ instantiate sub (Scope body) = go 0 body
         go i t@(Var (Bound k))
           | i == k = sub
           | otherwise = t
-        go i (App t1 t2) = App (go i t1) (go i t2)
+        go i (t1 :@ t2) = go i t1 :@ go i t2
         go i (Lambda ty scope) = Lambda (go i ty) (goScope i scope)
         go i (Pi ty scope) = Pi (go i ty) (goScope i scope)
         go i (Let def ty scope) = Let (go i def) (go i ty) (goScope i scope)
