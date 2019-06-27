@@ -34,6 +34,7 @@ module Deptt.Core.Syntax.Builder
   , lzero
   , lsucc
   , lmax
+  , universeTop
   )
 where
 
@@ -141,6 +142,9 @@ lsucc = Builtin LevelSucc
 
 lmax :: Term
 lmax = Builtin LevelMax
+
+universeTop :: Term
+universeTop = Builtin UniverseTop
 
 infixl 9 @@
 infixr 8 +->

@@ -2,9 +2,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Deptt.Core.TypeCheck (typeCheck, runWithContext, inferType, inferPi, inferUniverse, Context, TC, builtinType) where
 
-import Deptt.Core.Syntax (Var(..), Term(..), Scope, abstract, instantiate)
+import Deptt.Core.Syntax (Var(..), Term(..), Builtin(..), Scope, abstract, instantiate)
+import Deptt.Core.Syntax.Builder (universeTop, lmax, (@@))
 import Deptt.Core.TypeCheck.Builtin (builtinType)
 import Deptt.Core.Normalize (normalizeTerm)
+import Control.Applicative (liftA2)
 import Control.Monad.Except (ExceptT, MonadError(..), runExceptT)
 import Control.Monad.Reader (ReaderT, MonadReader(..), runReaderT)
 import Control.Monad.Identity (Identity, runIdentity)
@@ -14,6 +16,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Map.Strict as M
 import Data.Map (Map)
+import Data.Maybe (fromMaybe)
 
 type TypeError = Text
 
@@ -53,7 +56,7 @@ inferType (Pi ty scope) = do
   name <- freshVar
   let opened = instantiate (Var (Free name)) scope
   k2 <- withContext name ty (inferUniverse opened)
-  return undefined -- TODO
+  return $ fromMaybe universeTop $ liftA2 (\x y -> lmax @@ x @@ y) k1 k2
 inferType (Lambda ty scope) = do
   -- although we do not use the universe of the type, we still have to
   -- make sure it is well-typed itself
@@ -76,7 +79,13 @@ typeError :: TypeError -> TC a
 typeError msg = TC (throwError msg)
 
 inferUniverse :: Term -> TC (Maybe Term)
-inferUniverse tm = undefined -- TODO
+inferUniverse tm = do
+  ty <- inferType tm
+  let norm = normalizeTerm ty
+  case norm of
+    Builtin Universe `App` lvl -> return (Just lvl)
+    Builtin UniverseTop -> return Nothing
+    _ -> typeError "expected universe"
 
 checkEqual :: Term -> Term -> TC ()
 checkEqual e1 e2
