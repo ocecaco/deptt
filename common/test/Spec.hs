@@ -49,6 +49,18 @@ normalizationTests = testGroup "Normalization"
       (proj2 @@ lzero @@ lzero @@ nat @@ nat @@ (pair @@ lzero @@ lzero @@ nat @@ nat @@ zero @@ (succ_ @@ zero))) `normalizesTo` (succ_ @@ zero)
   , testCase "unitelim" $
       (unitelim @@ lzero @@ fun "u" unit nat @@ zero @@ tt) `normalizesTo` zero
+  , testCase "levels commutative" $
+      (forall "n" level $ forall "m" level $ type_ (lmax @@ v "n" @@ v "m")) `agreesWith` (forall "n" level $ forall "m" level $ type_ (lmax @@ v "m" @@ v "n"))
+  , testCase "levels idempotent" $
+      (forall "n" level $ type_ (lmax @@ v "n" @@ v "n")) `agreesWith` (forall "n" level $ type_ (v "n"))
+  , testCase "levels subsumption" $
+      (forall "n" level $ type_ (lmax @@ v "n" @@ (lsucc @@ v "n"))) `agreesWith` (forall "n" level $ type_ (lsucc @@ (v "n")))
+  , testCase "levels succ and max commuting" $
+      (forall "n" level $ forall "m" level $ type_ (lsucc @@ (lmax @@ v "n" @@ v "m"))) `agreesWith` (forall "n" level $ forall "m" level $ type_ (lmax @@ (lsucc @@ v "n") @@ (lsucc @@ v "m")))
+  , testCase "levels constants" $
+      (type_ (lmax @@ (lsucc @@ lzero) @@ lzero)) `agreesWith` (type_ (lsucc @@ lzero))
+  , testCase "levels constant subsumption" $
+      (forall "n" level $ type_ (lmax @@ (lsucc @@ v "n") @@ (lsucc @@ lzero))) `agreesWith` (forall "n" level $ type_ (lsucc @@ v "n"))
   ]
   where normalizesTo :: Term -> Term -> IO ()
         normalizesTo source target = case typeCheck source of
@@ -60,3 +72,14 @@ normalizationTests = testGroup "Normalization"
               let targetTyNorm = normalizeTerm targetTy
               assertEqual "source and target types must match" targetTyNorm sourceTyNorm
               assertEqual "source should normalize to target" target (normalizeTerm source)
+
+        agreesWith :: Term -> Term -> IO ()
+        agreesWith t1 t2 = case typeCheck t1 of
+          Left msg1 -> assertFailure $ "t1 is ill-typed: " <> T.unpack msg1
+          Right t1ty -> case typeCheck t2 of
+            Left msg2 -> assertFailure $ "t2 is ill-typed: " <> T.unpack msg2
+            Right t2ty -> do
+              let t1tynorm = normalizeTerm t1ty
+              let t2tynorm = normalizeTerm t2ty
+              assertEqual "t1 and t2 types must match" t2tynorm t1tynorm
+              assertEqual "t1 and t2 should normalize to the same term" (normalizeTerm t2) (normalizeTerm t1)
