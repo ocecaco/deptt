@@ -50,7 +50,7 @@ forall name ty body = Pi ty (abstract name body)
 t1 +-> t2 = Pi t1 (abstract "__unused__" t2)
 
 type_ :: Term -> Term
-type_ lvl = Universe (Just lvl)
+type_ lvl = Builtin Universe @@ lvl
 
 v :: Text -> Term
 v name = Var (Free name)
@@ -131,16 +131,16 @@ voidelim :: Term
 voidelim = Builtin VoidElim
 
 level :: Term
-level = Level
+level = Builtin Level
 
 lzero :: Term
-lzero = LevelZero
+lzero = Builtin LevelZero
 
-lsucc :: Term -> Term
-lsucc = LevelSucc
+lsucc :: Term
+lsucc = Builtin LevelSucc
 
-lmax :: Term -> Term -> Term
-lmax = LevelMax
+lmax :: Term
+lmax = Builtin LevelMax
 
 infixl 9 @@
 infixr 8 +->

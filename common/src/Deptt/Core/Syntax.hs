@@ -14,15 +14,6 @@ data Term = Var Var
           | Let Term Term Scope
           | App Term Term
 
-          | Level
-          | LevelZero
-          | LevelSucc Term
-          | LevelMax Term Term
-
-          -- the universe levels are encoded using special
-          -- terms (levels)
-          | Universe (Maybe Term)
-
           | Builtin Builtin
           deriving (Eq, Ord, Show)
 
@@ -59,6 +50,14 @@ data Builtin = Nat
 
              | Void
              | VoidElim
+
+             | Level
+             | LevelZero
+             | LevelSucc
+             | LevelMax
+
+             | UniverseTop
+             | Universe
              deriving (Eq, Ord, Show, Enum, Bounded)
 
 -- names of bound variables are ignored during equality comparison
@@ -71,11 +70,6 @@ instance Eq Scope where
 abstract :: Text -> Term -> Scope
 abstract name fullTerm = Scope (go 0 fullTerm)
   where go :: Int -> Term -> Term
-        go i (Universe level) = Universe (go i <$> level)
-        go _ t@Level = t
-        go _ t@LevelZero = t
-        go i (LevelSucc t) = LevelSucc (go i t)
-        go i (LevelMax t1 t2) = LevelMax (go i t1) (go i t2)
         go _ t@(Builtin _) = t
         go _ t@(Var (Bound _)) = t
         go i t@(Var (Free n))
@@ -94,11 +88,6 @@ abstract name fullTerm = Scope (go 0 fullTerm)
 instantiate :: Term -> Scope -> Term
 instantiate sub (Scope body) = go 0 body
   where go :: Int -> Term -> Term
-        go i (Universe level) = Universe (go i <$> level)
-        go _ t@Level = t
-        go _ t@LevelZero = t
-        go i (LevelSucc t) = LevelSucc (go i t)
-        go i (LevelMax t1 t2) = LevelMax (go i t1) (go i t2)
         go _ t@(Builtin _) = t
         go _ t@(Var (Free _)) = t
         go i t@(Var (Bound k))
