@@ -10,14 +10,13 @@ import Control.Monad.Except (ExceptT, MonadError(..), runExceptT)
 import Control.Monad.Reader (ReaderT, MonadReader(..), runReaderT)
 import Control.Monad.Trans (lift)
 import Control.Applicative (liftA2)
-import Control.Monad (when)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as M
 import Deptt.Util.VarSupply (VarSupplyT, runVarSupplyT, fresh)
 import qualified Deptt.Core.Syntax as C
 import qualified Deptt.Core.Normalize as N
 import qualified Deptt.Core.TypeCheck as CT
-import Data.Maybe (fromJust)
+import Data.Maybe (fromJust, fromMaybe)
 
 -- TODO: Less wrapping/unwrapping using TC
 
@@ -70,8 +69,8 @@ freshVar = TC $ lift . lift $ do
 
 intToLevel :: Int -> C.Term
 intToLevel k
-  | k == 0 = C.LevelZero
-  | k > 0 = C.LevelSucc (intToLevel (k - 1))
+  | k == 0 = C.Builtin C.LevelZero
+  | k > 0 = C.Builtin C.LevelSucc C.:@ intToLevel (k - 1)
   | otherwise = error "negative k in intToLevel"
 
 inferPi :: TermI -> TC (TCResult (C.Term, C.Scope))
@@ -85,15 +84,16 @@ inferUniverse :: TermI -> TC (TCResult (Maybe C.Term))
 inferUniverse tm = do
   (ty, trans) <- inferType tm
   case N.normalizeTerm ty of
-    C.Universe k -> return (k, trans)
+    C.Builtin C.Universe C.:@ lvl -> return (Just lvl, trans)
+    C.Builtin C.UniverseTop -> return (Nothing, trans)
     _ -> typeError "expected pi"
 
-universeMax :: Maybe C.Term -> Maybe C.Term -> Maybe C.Term
-universeMax = liftA2 C.LevelMax
+universeMax :: Maybe C.Term -> Maybe C.Term -> C.Term
+universeMax level1 level2 = fromMaybe (C.Builtin C.UniverseTop) $ liftA2 (\x y -> C.Builtin C.Universe C.:@ (C.Builtin C.LevelMax C.:@ x C.:@ y)) level1 level2
 
 inferType :: TermI -> TC (TCResult C.Term)
-inferType (Universe k) = return (C.Universe (Just (C.LevelSucc k')), C.Universe (Just k'))
-  where k' = intToLevel k
+inferType (Universe k) = return (univ (intToLevel (k + 1)), univ (intToLevel k))
+  where univ lvl = C.Builtin C.Universe C.:@ lvl
 inferType (Var (Bound _)) = error "type checker found bound variable"
 inferType (Var (Free n)) = do
   ty <- lookupType n
@@ -103,11 +103,11 @@ inferType (Pi ty scope) = do
   name <- freshVar
   let opened = instantiateI (Var (Free name)) scope
   (k2, bodytrans) <- withContext name tytrans $ inferUniverse opened
-  return (C.Universe (universeMax k1 k2), C.Pi tytrans (C.abstract name bodytrans))
+  return (universeMax k1 k2, C.Pi tytrans (C.abstract name bodytrans))
 inferType (App fun arg) = do
   ((piexpect, pibody), transfun) <- inferPi fun
   ((), transarg) <- checkType arg piexpect
-  return (C.instantiate transarg pibody, C.App transfun transarg)
+  return (C.instantiate transarg pibody, transfun C.:@ transarg)
 inferType (Annotate term ty) = do
   (_univ, transty) <- inferUniverse ty
   ((), transterm) <- checkType term transty
@@ -118,9 +118,13 @@ inferType (Eq t1 t2) = do
   (ty2, trans2) <- inferType t2
   checkEqual ty1 ty2
   univ1 <- runCore $ CT.inferUniverse ty1
-  return (C.Universe univ1, eq (fromJust univ1) ty1 trans1 trans2)
+  return (makeuniv univ1, eq (fromJust univ1) ty1 trans1 trans2)
   where eq :: C.Term -> C.Term -> C.Term -> C.Term -> C.Term
-        eq lvl ty x y = (((C.Builtin C.Eq `C.App` lvl) `C.App` ty) `C.App` x) `C.App` y
+        eq lvl ty x y = C.Builtin C.Eq C.:@ lvl C.:@ ty C.:@ x C.:@ y
+
+        makeuniv :: Maybe C.Term -> C.Term
+        makeuniv Nothing = C.Builtin C.UniverseTop
+        makeuniv (Just lvl) = C.Builtin C.Universe C.:@ lvl
 
 checkEqual :: C.Term -> C.Term -> TC ()
 checkEqual e1 e2
@@ -155,9 +159,9 @@ checkType (Let def scope) tyexpect = do
 checkType Refl tyexpect = do
   let normtyexpect = N.normalizeTerm tyexpect
   case normtyexpect of
-    (((C.Builtin C.Eq `C.App` lvl) `C.App` ty) `C.App` t1) `C.App` t2 -> do
+    C.Builtin C.Eq C.:@ lvl C.:@ ty C.:@ t1 C.:@ t2 -> do
       checkEqual t1 t2
-      return ((), ((C.Builtin C.Refl `C.App` lvl) `C.App` ty) `C.App` t1)
+      return ((), C.Builtin C.Refl C.:@ lvl C.:@ ty C.:@ t1)
     _ -> typeError "refl expects equality type"
 
 -- run a core type checker action in the current context
