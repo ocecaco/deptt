@@ -10,6 +10,10 @@ module Deptt.Core.Syntax.Builder
   , zero
   , succ_
   , natelim
+  , list
+  , nil
+  , cons
+  , listelim
   , eq
   , refl
   , eqelim
@@ -145,6 +149,18 @@ lmax = Builtin LevelMax
 
 universeTop :: Term
 universeTop = Builtin UniverseTop
+
+list :: Term
+list = Builtin List
+
+nil :: Term
+nil = Builtin Nil
+
+cons :: Term
+cons = Builtin Cons
+
+listelim :: Term
+listelim = Builtin ListElim
 
 infixl 9 @@
 infixr 8 +->

@@ -26,6 +26,11 @@ builtinType Zero = Just nat
 builtinType Succ = Just $ nat +-> nat
 builtinType NatElim = Just $ forlvl "lvl" $ forall "P" (nat +-> type_ lvl) (v "P" @@ zero +-> forall "k" nat (v "P" @@ v "k" +-> v "P" @@ (succ_ @@ v "k")) +-> forall "n" nat (v "P" @@ v "n"))
 
+builtinType List = Just $ forlvl "lvl" $ forall "A" (type_ lvl) $ type_ lvl
+builtinType Nil = Just $ forlvl "lvl" $ forall "A" (type_ lvl) $ list @@ lvl @@ v "A"
+builtinType Cons = Just $ forlvl "lvl" $ forall "A" (type_ lvl) $ v "A" +-> list @@ lvl @@ v "A" +-> list @@ lvl @@ v "A"
+builtinType ListElim = Just $ forlvl "lvl1" $ forlvl "lvl2" $ forall "A" (type_ lvl1) $ forall "P" (list @@ lvl1 @@ v "A" +-> type_ lvl2) $ v "P" @@ (nil @@ lvl1 @@ v "A") +-> (forall "a" (v "A") $ forall "m" (list @@ lvl1 @@ v "A") $ v "P" @@ v "m" +-> v "P" @@ (cons @@ lvl1 @@ v "A" @@ v "a" @@ v "m")) +-> forall "m" (list @@ lvl1 @@ v "A") (v "P" @@ v "m")
+
 builtinType Eq = Just $ forlvl "lvl" $ forall "A" (type_ lvl) (v "A" +-> v "A" +-> type_ lvl)
 builtinType Refl = Just $ forlvl "lvl" $ forall "A" (type_ lvl) (forall "x" (v "A") (eq @@ lvl @@ v "A" @@ v "x" @@ v "x"))
 builtinType EqElim = Just $ forlvl "lvl1" $ forlvl "lvl2" $ forall "A" (type_ lvl1) (forall "x" (v "A") (forall "P" (v "A" +-> type_ lvl2) (v "P" @@ v "x" +-> forall "y" (v "A") (eq @@ lvl1 @@ v "A" @@ v "x" @@ v "y" +-> v "P" @@ v "y"))))

@@ -27,6 +27,11 @@ data Builtin = Nat
              | Succ
              | NatElim
 
+             | List
+             | Nil
+             | Cons
+             | ListElim
+
              | Eq
              | Refl
              | EqElim

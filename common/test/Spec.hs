@@ -49,6 +49,8 @@ normalizationTests = testGroup "Normalization"
       (proj2 @@ lzero @@ lzero @@ nat @@ nat @@ (pair @@ lzero @@ lzero @@ nat @@ nat @@ zero @@ (succ_ @@ zero))) `normalizesTo` (succ_ @@ zero)
   , testCase "unitelim" $
       (unitelim @@ lzero @@ fun "u" unit nat @@ zero @@ tt) `normalizesTo` zero
+  , testCase "listelim" $
+      (listelim @@ lzero @@ lzero @@ nat @@ fun "t" (list @@ lzero @@ nat) nat @@ zero @@ (fun "x" nat $ fun "xs" (list @@ lzero @@ nat) $ fun "IH" nat $ succ_ @@ (v "IH")) @@ (cons @@ lzero @@ nat @@ zero @@ (cons @@ lzero @@ nat @@ zero @@ (cons @@ lzero @@ nat @@ zero @@ (nil @@ lzero @@ nat))))) `normalizesTo` (succ_ @@ (succ_ @@ (succ_ @@ zero)))
   , testCase "levels commutative" $
       (forall "n" level $ forall "m" level $ type_ (lmax @@ v "n" @@ v "m")) `agreesWith` (forall "n" level $ forall "m" level $ type_ (lmax @@ v "m" @@ v "n"))
   , testCase "levels idempotent" $

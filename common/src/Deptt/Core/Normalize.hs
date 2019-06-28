@@ -29,6 +29,8 @@ normalizeBuiltin (Builtin EqElim :@ _lvl :@ _ :@ _A :@ _x :@ _P :@ px :@ _y :@ (
 normalizeBuiltin (Builtin Proj1 :@ _lvl :@ _ :@ _A1 :@ _B1 :@ (Builtin Pair :@ _lvl2 :@ _ :@ _A :@ _B :@ x :@ _y)) = Just (return x)
 normalizeBuiltin (Builtin Proj2 :@ _lvl :@ _ :@ _A1 :@ _B1 :@ (Builtin Pair :@ _lvl2 :@ _ :@ _A :@ _B :@ _x :@ y)) = Just (return y)
 normalizeBuiltin (Builtin UnitElim :@ _lvl :@ _P :@ ptt :@ Builtin Tt) = Just (return ptt)
+normalizeBuiltin (Builtin ListElim :@ _lvl1 :@ _lvl2 :@ _A1 :@ _P :@ base :@ _ind :@ (Builtin Nil :@ _lvl3 :@ _A2)) = Just (return base)
+normalizeBuiltin (Builtin ListElim :@ lvl1 :@ lvl2 :@ tyA1 :@ tyP :@ base :@ ind :@ (Builtin Cons :@ _lvl3 :@ _A2 :@ h :@ hs)) = Just (normalize (ind @@ h @@ hs @@ (listelim @@ lvl1 @@ lvl2 @@ tyA1 @@ tyP @@ base @@ ind @@ hs)))
 normalizeBuiltin t@(Builtin LevelSucc :@ _) = Just . return $ normalizeLevel t
 normalizeBuiltin t@(Builtin LevelMax :@ _ :@ _) = Just . return $ normalizeLevel t
 normalizeBuiltin _ = Nothing
