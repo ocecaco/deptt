@@ -15,8 +15,7 @@ build-type:          Simple
 extra-source-files:  CHANGELOG.md
 
 library
-  exposed-modules:     Deptt.Bidirectional.Syntax.Builder
-                     , Deptt.Core.Syntax
+  exposed-modules:     Deptt.Core.Syntax
                      , Deptt.Core.Syntax.Builder
                      , Deptt.Core.TypeCheck
                      , Deptt.Core.TypeCheck.Builtin
@@ -24,8 +23,9 @@ library
                      , Deptt.Core.Normalize
                      , Deptt.Core.Normalize.Level
                      , Deptt.Util.VarSupply
-                     , Deptt.Bidirectional.TypeCheck
-                     , Deptt.Bidirectional.Syntax
+                     -- , Deptt.Bidirectional.Syntax.Builder
+                     -- , Deptt.Bidirectional.TypeCheck
+                     -- , Deptt.Bidirectional.Syntax
   other-extensions:    GeneralizedNewtypeDeriving
   build-depends:       base
                      , mtl
