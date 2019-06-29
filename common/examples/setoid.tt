@@ -25,4 +25,7 @@ fun (A : type0) (rel : binaryrelation A) => and lzero lzero (reflexive A rel) (a
 let setoid : type1 =
 ex lone lone type0 (fun A : type0 => ex lone lzero (binaryrelation A) (fun rel : binaryrelation A => equivrelation A rel)) in
 
-setoid
+let relationby : forall (A B : type0) (f : A -> B), binaryrelation A =
+fun (A B : type0) (f : A -> B) (x y : A) => eq lzero B (f x) (f y) in
+
+unit
