@@ -1,0 +1,28 @@
+let lone : level =
+lsucc lzero in
+
+let type0 : type lone =
+type lzero in
+
+let type1 : type (lsucc lone) =
+type lone in
+
+let binaryrelation : type0 -> type lone =
+fun A : type0 => A -> A -> type0 in
+
+let reflexive : forall (A : type0) (rel : binaryrelation A), type0 =
+fun (A : type0) (rel : binaryrelation A) => forall x : A, rel x x in
+
+let symmetric : forall (A : type0) (rel : binaryrelation A), type0 =
+fun (A: type0) (rel : binaryrelation A) => forall x y : A, rel x y -> rel y x in
+
+let transitive : forall (A : type0) (rel : binaryrelation A), type0 =
+fun (A : type0) (rel : binaryrelation A) => forall x y z : A, rel x y -> rel y z -> rel x z in
+
+let equivrelation : forall (A : type0) (rel : binaryrelation A), type0 =
+fun (A : type0) (rel : binaryrelation A) => and lzero lzero (reflexive A rel) (and lzero lzero (symmetric A rel) (transitive A rel)) in
+
+let setoid : type1 =
+ex lone lone type0 (fun A : type0 => ex lone lzero (binaryrelation A) (fun rel : binaryrelation A => equivrelation A rel)) in
+
+setoid
