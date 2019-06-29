@@ -1,4 +1,4 @@
-module Deptt.Core.Syntax (Var(..), Term(..), Scope, Builtin(..), abstract, instantiate) where
+module Deptt.Core.Syntax (Var(..), Term(..), Scope(..), Builtin(..), abstract, instantiate) where
 
 import Data.Text (Text)
 
@@ -19,7 +19,7 @@ data Term = Var Var
 
 infixl 8 :@
 
-data Scope = Scope Term
+data Scope = ManualScope Term
               deriving (Ord, Show)
 
 data Builtin = Nat
@@ -71,11 +71,11 @@ data Builtin = Nat
 -- since we are using de Bruijn indices (although the name does get
 -- used for pretty printing)
 instance Eq Scope where
-  Scope body1 == Scope body2 = body1 == body2
+  ManualScope body1 == ManualScope body2 = body1 == body2
 
 -- based on Conor McBride's "I am not a number--I am a free variable"
 abstract :: Text -> Term -> Scope
-abstract name fullTerm = Scope (go 0 fullTerm)
+abstract name fullTerm = ManualScope (go 0 fullTerm)
   where go :: Int -> Term -> Term
         go _ t@(Builtin _) = t
         go _ t@(Var (Bound _)) = t
@@ -88,12 +88,12 @@ abstract name fullTerm = Scope (go 0 fullTerm)
         go i (Let def ty scope) = Let (go i def) (go i ty) (goScope i scope)
 
         goScope :: Int -> Scope -> Scope
-        goScope i (Scope body) = Scope (go (i + 1) body)
+        goScope i (ManualScope body) = ManualScope (go (i + 1) body)
 
 -- TODO: add debug check to ensure that there are no dangling de
 -- bruijn variables in the term that is being substituted?
 instantiate :: Term -> Scope -> Term
-instantiate sub (Scope body) = go 0 body
+instantiate sub (ManualScope body) = go 0 body
   where go :: Int -> Term -> Term
         go _ t@(Builtin _) = t
         go _ t@(Var (Free _)) = t
@@ -106,4 +106,4 @@ instantiate sub (Scope body) = go 0 body
         go i (Let def ty scope) = Let (go i def) (go i ty) (goScope i scope)
 
         goScope :: Int -> Scope -> Scope
-        goScope i (Scope inner) = Scope (go (i + 1) inner)
+        goScope i (ManualScope inner) = ManualScope (go (i + 1) inner)

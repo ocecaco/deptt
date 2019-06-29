@@ -1,0 +1,11 @@
+let not : type lzero -> type lzero = fun A : type lzero => A -> void in
+
+let eqn : nat -> nat -> type lzero = eq lzero nat in
+
+fun H0 : eqn zero (succ zero) =>
+
+let result : nat -> type lzero = fun n : nat => natelim (lsucc lzero) (fun n : nat => type lzero) unit (fun (n : nat) (T : type lzero) => void) n in
+
+let exploder : void = eqelim lzero lzero nat zero result tt (succ zero) H0 in
+
+exploder

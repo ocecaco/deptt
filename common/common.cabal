@@ -23,6 +23,7 @@ library
                      , Deptt.Core.Normalize
                      , Deptt.Core.Normalize.Level
                      , Deptt.Util.VarSupply
+                     , Deptt.Core.Parser
   other-extensions:    GeneralizedNewtypeDeriving
   build-depends:       base
                      , mtl
