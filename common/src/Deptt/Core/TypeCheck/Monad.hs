@@ -7,6 +7,7 @@ module Deptt.Core.TypeCheck.Monad
   , lookupType
   , typeError
   , run
+  , openScope
   )
 where
 
@@ -18,7 +19,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Map.Strict as M
 import Data.Map (Map)
-import Deptt.Core.Syntax (Term)
+import Deptt.Core.Syntax (Term(..), Var(..), Scope, Name(..), scopePrettyName, instantiate, abstract)
 import Deptt.Util.VarSupply (VarSupplyT, runVarSupplyT, fresh)
 
 type TypeError = Text
@@ -45,6 +46,16 @@ lookupType name = TC $ do
 
 typeError :: TypeError -> TC a
 typeError msg = TC (throwError msg)
+
+-- This function does NOT check whether the type you give it is
+-- well-typed!
+openScope :: Term -> Scope -> (Term -> (Term -> Scope) -> TC a) -> TC a
+openScope ty scope act = do
+  f <- freshVar
+  let namePretty = scopePrettyName scope
+  let closer = abstract f namePretty
+  let opened = instantiate (Var (Free (Name f namePretty))) scope
+  withContext f ty (act opened closer)
 
 run :: TC a -> Either Text a
 run act = runIdentity (runVarSupplyT (runReaderT (runExceptT (runTC act)) initialContext))

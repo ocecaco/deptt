@@ -1,10 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Deptt.Core.Normalize (normalize) where
 
-import Deptt.Core.Syntax (Var(..), Term(..), Builtin(..), Scope, Name(..), scopePrettyName, abstract, instantiate)
+import Deptt.Core.Syntax (Term(..), Builtin(..), Scope, instantiate)
 import Deptt.Core.Syntax.Builder
 import Deptt.Core.Normalize.Level (normalizeLevel)
-import Deptt.Core.TypeCheck.Monad (TC, freshVar)
+import Deptt.Core.TypeCheck.Monad (TC, openScope)
 
 normalizeBuiltin :: Term -> Maybe (TC Term)
 normalizeBuiltin (Builtin NatElim :@ _lvl :@ _ :@ nbase :@ _ :@ Builtin Zero) = Just (return nbase)
@@ -36,13 +36,11 @@ normalize (e1old :@ e2old) = do
       Lambda _ scope -> normalize (instantiate e2norm scope)
       _ -> return $ e1norm :@ e2norm
 
-normalize (Pi ty scope) = Pi <$> normalize ty <*> normalizeScope scope
-normalize (Lambda ty scope) = Lambda <$> normalize ty <*> normalizeScope scope
+normalize (Pi ty scope) = Pi <$> normalize ty <*> normalizeScope ty scope
+normalize (Lambda ty scope) = Lambda <$> normalize ty <*> normalizeScope ty scope
 
-normalizeScope :: Scope -> TC Scope
-normalizeScope scope = do
-  f <- freshVar
-  let namePretty = scopePrettyName scope
-  let opened = instantiate (Var (Free (Name f namePretty))) scope
-  normed <- normalize opened
-  return $ abstract f namePretty normed
+normalizeScope :: Term -> Scope -> TC Scope
+normalizeScope ty scope =
+  openScope ty scope $ \opened close -> do
+    normed <- normalize opened
+    return $ close normed

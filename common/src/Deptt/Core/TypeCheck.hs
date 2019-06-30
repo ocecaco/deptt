@@ -2,10 +2,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Deptt.Core.TypeCheck (typeCheck, inferType, inferPi, inferUniverse, builtinType) where
 
-import Deptt.Core.Syntax (Var(..), Term(..), Builtin(..), Scope, Name(..), scopePrettyName, abstract, instantiate)
+import Deptt.Core.Syntax (Var(..), Term(..), Builtin(..), Scope, Name(..), instantiate)
 import Deptt.Core.Syntax.Builder (universeTop, lmax, (@@), type_)
 import Deptt.Core.TypeCheck.Builtin (builtinType)
-import Deptt.Core.TypeCheck.Monad (TC, freshVar, lookupType, typeError, run, withContext)
+import Deptt.Core.TypeCheck.Monad (TC, lookupType, typeError, run, openScope)
 import Deptt.Core.Normalize (normalize)
 import Deptt.Core.PrettyPrint (prettyPrint)
 import Control.Applicative (liftA2)
@@ -25,20 +25,16 @@ inferType (Let def ty scope) = do
   inferType (instantiate def scope)
 inferType (Pi ty scope) = do
   k1 <- inferUniverse ty
-  name <- freshVar
-  let namePretty = scopePrettyName scope
-  let opened = instantiate (Var (Free (Name name namePretty))) scope
-  k2 <- withContext name ty (inferUniverse opened)
+  -- TODO: Is it right that we don't have to close the inferred
+  -- universe? Can't it reference the binder from the pi?
+  k2 <- openScope ty scope $ \opened _unused_close -> inferUniverse opened
   return $ fromMaybe universeTop $ liftA2 (\x y -> type_ (lmax @@ x @@ y)) k1 k2
 inferType (Lambda ty scope) = do
   -- although we do not use the universe of the type, we still have to
   -- make sure it is well-typed itself
   _univ <- inferUniverse ty
-  name <- freshVar
-  let namePretty = scopePrettyName scope
-  let opened = instantiate (Var (Free (Name name namePretty))) scope
-  tybody <- withContext name ty (inferType opened)
-  return (Pi ty (abstract name namePretty tybody))
+  tybody <- openScope ty scope $ \opened close -> close <$> inferType opened
+  return (Pi ty tybody)
 
 -- here, we check if the type of the argument matches the type
 -- expected by the function. the type of the result is then obtained by
