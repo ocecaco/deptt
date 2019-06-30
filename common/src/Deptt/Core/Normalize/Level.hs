@@ -1,4 +1,4 @@
-module Deptt.Core.TypeCheck.Level (normalizeLevel) where
+module Deptt.Core.Normalize.Level (normalizeLevel) where
 
 import Deptt.Core.Syntax (Term(..), Builtin(..))
 import Data.List (nub, sort)

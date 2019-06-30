@@ -6,6 +6,7 @@ import qualified Data.Text as T
 import Deptt.Core.Syntax
 import Deptt.Core.Syntax.Builder
 import Deptt.Core.TypeCheck
+import Deptt.Core.Normalize
 import Deptt.Core.TypeCheck.Monad
 
 main :: IO ()

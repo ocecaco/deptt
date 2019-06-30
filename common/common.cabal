@@ -20,8 +20,9 @@ library
                      , Deptt.Core.TypeCheck
                      , Deptt.Core.TypeCheck.Monad
                      , Deptt.Core.TypeCheck.Builtin
-                     , Deptt.Core.TypeCheck.Level
                      , Deptt
+                     , Deptt.Core.Normalize
+                     , Deptt.Core.Normalize.Level
                      , Deptt.Util.VarSupply
                      , Deptt.Core.Parser
                      , Deptt.Core.PrettyPrint
