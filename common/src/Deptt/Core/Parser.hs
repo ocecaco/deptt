@@ -167,7 +167,7 @@ definition = do
     Nothing -> return (name, ty, def)
     Just bs -> do
       let tyfun = foldr (\(bindname, bindty) tm -> Pi bindty (Scope bindname tm)) ty bs
-      let fulldef = foldr (\(bindname, bindty) tm -> Lambda bindty (Scope bindname tm)) def bs
+      let fulldef = foldr (\(bindname, bindty) tm -> Lambda bindty (Scope bindname tm)) (Annotate def ty) bs
       return (name, tyfun, fulldef)
 
 letdef :: Parser Term

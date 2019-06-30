@@ -1,9 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecursiveDo #-}
 module Main where
 
 import Reflex.Dom
-import qualified Lib as L
+import qualified Deptt as L
 
 main :: IO ()
 main = mainWidget $ elClass "section" "section" $ elClass "div" "container" $ do

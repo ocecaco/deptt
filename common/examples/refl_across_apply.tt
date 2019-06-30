@@ -1,7 +1,8 @@
 let
 
 cross (n m : level) (A : type n) (B : type m) (f : A -> B) (x y : A) (Heq : eq n A x y) : eq m B (f x) (f y) =
-eqelim n m A x (fun place : A => eq m B (f x) (f place)) (refl m B (f x)) y Heq
+-- eqelim n m A x (fun place : A => eq m B (f x) (f place)) (refl m B (f x)) y Heq
+zero
 
 and
 
