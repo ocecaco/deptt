@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Deptt.Core.Parser (convertToDeBruijn, Term(..), Scope(..), parseTerm) where
 
-import Text.Megaparsec (Parsec, try, notFollowedBy, between, eof, parse, parseErrorPretty, sepBy1, some)
+import Text.Megaparsec (Parsec, try, notFollowedBy, between, eof, parse, parseErrorPretty, sepBy1, some, optional)
 import Text.Megaparsec.Char (space1, string, letterChar, alphaNumChar, char)
 import Control.Monad.Combinators.Expr (Operator(..), makeExprParser)
 import qualified Text.Megaparsec.Char.Lexer as L
@@ -43,7 +43,7 @@ rword :: Text -> Parser ()
 rword w = lexeme (try (string w *> notFollowedBy alphaNumChar))
 
 reservedWords :: [Text]
-reservedWords = ["fun", "forall", "let", "in"]
+reservedWords = ["fun", "forall", "let", "in", "and"]
 
 identifier :: Parser Text
 identifier = lexeme (try (name >>= check))
@@ -155,17 +155,28 @@ lambda = do
   body <- term
   pure (foldr (\(name, ty) tm -> Lambda ty (Scope name tm)) body bs)
 
-letdef :: Parser Term
-letdef = do
-  rword "let"
+definition :: Parser (Text, Term, Term)
+definition = do
   name <- identifier
+  maybebs <- optional binders
   symbol ":"
   ty <- term
   symbol "="
   def <- term
+  case maybebs of
+    Nothing -> return (name, ty, def)
+    Just bs -> do
+      let tyfun = foldr (\(bindname, bindty) tm -> Pi bindty (Scope bindname tm)) ty bs
+      let fulldef = foldr (\(bindname, bindty) tm -> Lambda bindty (Scope bindname tm)) def bs
+      return (name, tyfun, fulldef)
+
+letdef :: Parser Term
+letdef = do
+  rword "let"
+  defs <- definition `sepBy1` rword "and"
   symbol "in"
   body <- term
-  pure (Let def ty (Scope name body))
+  pure (foldr (\(name, ty, def) tm -> Let ty def (Scope name tm)) body defs)
 
 data ScopeError = OutOfScope Text
 
