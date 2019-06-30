@@ -18,6 +18,7 @@ library
   exposed-modules:     Deptt.Core.Syntax
                      , Deptt.Core.Syntax.Builder
                      , Deptt.Core.TypeCheck
+                     , Deptt.Core.TypeCheck.Monad
                      , Deptt.Core.TypeCheck.Builtin
                      , Deptt
                      , Deptt.Core.Normalize

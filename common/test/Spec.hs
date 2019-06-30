@@ -7,6 +7,7 @@ import Deptt.Core.Syntax
 import Deptt.Core.Syntax.Builder
 import Deptt.Core.TypeCheck
 import Deptt.Core.Normalize
+import Deptt.Core.TypeCheck.Monad
 
 main :: IO ()
 main = defaultMain tests
@@ -85,3 +86,9 @@ normalizationTests = testGroup "Normalization"
               let t2tynorm = normalizeTerm t2ty
               assertEqual "t1 and t2 types must match" t2tynorm t1tynorm
               assertEqual "t1 and t2 should normalize to the same term" (normalizeTerm t2) (normalizeTerm t1)
+
+        normalizeTerm :: Term -> Term
+        normalizeTerm tm =
+          case run (normalize tm) of
+            Left msg -> error $ "normalization failed with type error: " <> T.unpack msg
+            Right norm -> norm

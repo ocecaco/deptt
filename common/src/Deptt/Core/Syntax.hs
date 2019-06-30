@@ -3,7 +3,7 @@ module Deptt.Core.Syntax (Var(..), Term(..), Scope(..), Builtin(..), Name(..), P
 import Data.Text (Text)
 
 newtype PrettyName = PrettyName { unwrapPrettyName :: Text }
-                   deriving (Ord)
+                   deriving (Ord, Show)
 
 -- don't take into account the pretty-printing names when comparing
 -- terms for equality
@@ -11,11 +11,11 @@ instance Eq PrettyName where
   _ == _ = True
 
 data Name = Name { internalName :: Text, prettyName :: PrettyName }
-          deriving (Eq, Ord)
+          deriving (Eq, Ord, Show)
 
 data Var = Bound Int -- de Bruijn index
          | Free Name -- free variable by name
-         deriving (Eq, Ord)
+         deriving (Eq, Ord, Show)
 
 -- TODO: Add credits to Andrej Bauer for some of the code that is
 -- similar
@@ -26,12 +26,12 @@ data Term = Var Var
           | Term :@ Term
 
           | Builtin Builtin
-          deriving (Eq, Ord)
+          deriving (Eq, Ord, Show)
 
 infixl 8 :@
 
 data Scope = ManualScope PrettyName Term
-              deriving (Eq, Ord)
+              deriving (Eq, Ord, Show)
 
 data Builtin = Nat
              | Zero
@@ -76,7 +76,7 @@ data Builtin = Nat
 
              | UniverseTop
              | Universe
-             deriving (Eq, Ord, Enum, Bounded)
+             deriving (Eq, Ord, Enum, Bounded, Show)
 
 -- based on Conor McBride's "I am not a number--I am a free variable"
 abstract :: Text -> PrettyName -> Term -> Scope

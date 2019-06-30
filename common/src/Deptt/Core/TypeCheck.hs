@@ -1,45 +1,16 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Deptt.Core.TypeCheck (typeCheck, runWithContext, inferType, inferPi, inferUniverse, Context, TC, builtinType) where
+module Deptt.Core.TypeCheck (typeCheck, inferType, inferPi, inferUniverse, builtinType) where
 
 import Deptt.Core.Syntax (Var(..), Term(..), Builtin(..), Scope, Name(..), scopePrettyName, abstract, instantiate)
 import Deptt.Core.Syntax.Builder (universeTop, lmax, (@@), type_)
 import Deptt.Core.TypeCheck.Builtin (builtinType)
-import Deptt.Core.Normalize (normalizeTerm)
+import Deptt.Core.TypeCheck.Monad (TC, freshVar, lookupType, typeError, run, withContext)
+import Deptt.Core.Normalize (normalize)
 import Deptt.Core.PrettyPrint (prettyPrint)
 import Control.Applicative (liftA2)
-import Control.Monad.Except (ExceptT, MonadError(..), runExceptT)
-import Control.Monad.Reader (ReaderT, MonadReader(..), runReaderT)
-import Control.Monad.Identity (Identity, runIdentity)
-import Control.Monad.Trans (lift)
-import Deptt.Util.VarSupply (VarSupplyT, runVarSupplyT, fresh)
 import Data.Text (Text)
-import qualified Data.Text as T
-import qualified Data.Map.Strict as M
-import Data.Map (Map)
 import Data.Maybe (fromMaybe)
-
-type TypeError = Text
-
-type Context = Map Text Term
-
-newtype TC a = TC { runTC :: ExceptT TypeError (ReaderT Context (VarSupplyT Identity)) a }
-             deriving (Functor, Applicative, Monad)
-
-freshVar :: TC Text
-freshVar = TC $ lift . lift $ do
-  i <- fresh
-  return $ "__typechecker_" <> T.pack (show i)
-
-withContext :: Text -> Term -> TC a -> TC a
-withContext name ty (TC act) = TC (local (M.insert name ty) act)
-
-lookupType :: Text -> TC Term
-lookupType name = TC $ do
-  ctxt <- ask
-  case M.lookup name ctxt of
-    Just ty -> return ty
-    Nothing -> error "lookupType: missing name in environment"
 
 inferType :: Term -> TC Term
 inferType (Var (Bound _)) = error "type checker encountered bound var"
@@ -78,13 +49,10 @@ inferType (e1 :@ e2) = do
   checkEqual tyexpect tyarg e2
   return (instantiate e2 scope)
 
-typeError :: TypeError -> TC a
-typeError msg = TC (throwError msg)
-
 inferUniverse :: Term -> TC (Maybe Term)
 inferUniverse tm = do
   ty <- inferType tm
-  let norm = normalizeTerm ty
+  norm <- normalize ty
   case norm of
     Builtin Universe :@ lvl -> return (Just lvl)
     Builtin UniverseTop -> return Nothing
@@ -94,24 +62,20 @@ prettyQuote :: Term -> Text
 prettyQuote tm = "'" <> prettyPrint tm <> "'"
 
 checkEqual :: Term -> Term -> Term -> TC ()
-checkEqual expected actual tm
-  | normexpected == normactual = return ()
-  | otherwise = typeError $ "type mismatch: expected term of type " <> prettyQuote normexpected <> " but found " <> prettyQuote tm <> " which has type " <> prettyQuote normactual
-  where normexpected = normalizeTerm expected
-        normactual = normalizeTerm actual
+checkEqual expected actual tm = do
+  normexpected <- normalize expected
+  normactual <- normalize actual
+  if normexpected == normactual
+    then return ()
+    else typeError $ "type mismatch: expected term of type " <> prettyQuote normexpected <> " but found " <> prettyQuote tm <> " which has type " <> prettyQuote normactual
 
 inferPi :: Term -> TC (Term, Scope)
 inferPi tm = do
   pity <- inferType tm
-  let norm = normalizeTerm pity
+  norm <- normalize pity
   case norm of
     Pi ty s -> return (ty, s)
     _ -> typeError $ "type mismatch: cannot apply " <> prettyQuote tm <> " of type " <> prettyQuote norm <> " since it is not a function"
 
 typeCheck :: Term -> Either Text Term
-typeCheck tm = runWithContext initialContext (inferType tm)
-  where initialContext :: Context
-        initialContext = M.empty
-
-runWithContext :: Context -> TC a -> Either Text a
-runWithContext ctxt act = runIdentity (runVarSupplyT (runReaderT (runExceptT (runTC act)) ctxt))
+typeCheck tm = run (inferType tm)
