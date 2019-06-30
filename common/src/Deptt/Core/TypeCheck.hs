@@ -6,6 +6,7 @@ import Deptt.Core.Syntax (Var(..), Term(..), Builtin(..), Scope, Name(..), scope
 import Deptt.Core.Syntax.Builder (universeTop, lmax, (@@), type_)
 import Deptt.Core.TypeCheck.Builtin (builtinType)
 import Deptt.Core.Normalize (normalizeTerm)
+import Deptt.Core.PrettyPrint (prettyPrint)
 import Control.Applicative (liftA2)
 import Control.Monad.Except (ExceptT, MonadError(..), runExceptT)
 import Control.Monad.Reader (ReaderT, MonadReader(..), runReaderT)
@@ -44,12 +45,12 @@ inferType :: Term -> TC Term
 inferType (Var (Bound _)) = error "type checker encountered bound var"
 inferType (Var (Free name)) = lookupType (internalName name)
 inferType (Builtin b) = case builtinType b of
-  Nothing -> typeError "attempt to take type of Type*"
+  Nothing -> typeError "attempt to take type of typeomega"
   Just ty -> return ty
 inferType (Let def ty scope) = do
   _univ <- inferUniverse ty
   tydef <- inferType def
-  checkEqual ty tydef
+  checkEqual ty tydef def
   inferType (instantiate def scope)
 inferType (Pi ty scope) = do
   k1 <- inferUniverse ty
@@ -74,7 +75,7 @@ inferType (Lambda ty scope) = do
 inferType (e1 :@ e2) = do
   (tyexpect, scope) <- inferPi e1
   tyarg <- inferType e2
-  checkEqual tyexpect tyarg
+  checkEqual tyexpect tyarg e2
   return (instantiate e2 scope)
 
 typeError :: TypeError -> TC a
@@ -87,14 +88,17 @@ inferUniverse tm = do
   case norm of
     Builtin Universe :@ lvl -> return (Just lvl)
     Builtin UniverseTop -> return Nothing
-    _ -> typeError "expected universe"
+    _ -> typeError $ "type mismatch: expected a type but found " <> prettyQuote tm <> " of type " <> prettyQuote norm <> " which is not a valid type"
 
-checkEqual :: Term -> Term -> TC ()
-checkEqual e1 e2
-  | norme1 == norme2 = return ()
-  | otherwise = typeError "type mismatch"
-  where norme1 = normalizeTerm e1
-        norme2 = normalizeTerm e2
+prettyQuote :: Term -> Text
+prettyQuote tm = "'" <> prettyPrint tm <> "'"
+
+checkEqual :: Term -> Term -> Term -> TC ()
+checkEqual expected actual tm
+  | normexpected == normactual = return ()
+  | otherwise = typeError $ "type mismatch: expected term of type " <> prettyQuote normexpected <> " but found " <> prettyQuote tm <> " which has type " <> prettyQuote normactual
+  where normexpected = normalizeTerm expected
+        normactual = normalizeTerm actual
 
 inferPi :: Term -> TC (Term, Scope)
 inferPi tm = do
@@ -102,7 +106,7 @@ inferPi tm = do
   let norm = normalizeTerm pity
   case norm of
     Pi ty s -> return (ty, s)
-    _ -> typeError "expected pi"
+    _ -> typeError $ "type mismatch: cannot apply " <> prettyQuote tm <> " of type " <> prettyQuote norm <> " since it is not a function"
 
 typeCheck :: Term -> Either Text Term
 typeCheck tm = runWithContext initialContext (inferType tm)
