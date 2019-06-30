@@ -5,7 +5,7 @@ module Deptt.Core.PrettyPrint (prettyPrint) where
 import Data.Text.Prettyprint.Doc (Doc, (<>), (<+>), Pretty(..), layoutCompact, space)
 import Data.Text.Prettyprint.Doc.Render.Text (renderStrict)
 import Data.Text (Text)
-import Deptt.Core.Syntax (Term(..), Scope(..), Var(..), Name(..), PrettyName(..), Builtin(..))
+import Deptt.Core.Syntax (Term(..), Scope(..), Var(..), Name(..), PrettyName(..), Builtin(..), isUnusedScope)
 import Control.Monad.Reader (Reader, runReader, MonadReader(..), asks)
 
 -- The operator precedence implementation is based on the "Final
@@ -152,23 +152,11 @@ renderBuiltin UniverseTop = "typeomega"
 renderBuiltin Universe = "type"
 
 renderScope :: Scope -> PP (Bool, PP (Doc a), PP (Doc a))
-renderScope (ManualScope name body) = do
+renderScope scope@(ManualScope name body) = do
   let prettyname = unwrapPrettyName name
   let prettybody = withContext prettyname (render body)
-  let occ = occursVar 0 body
+  let occ = isUnusedScope scope
   return (occ, pure (pretty prettyname), prettybody)
 
 prettyPrint :: Term -> Text
 prettyPrint tm = renderStrict (layoutCompact (runReader (runPP (render tm)) initialEnv))
-
-occursVar :: Int -> Term -> Bool
-occursVar k (Var (Bound i)) = k == i
-occursVar k (Pi ty scope) = occursVar k ty || occursVarScope k scope
-occursVar k (Lambda ty scope) = occursVar k ty || occursVarScope k scope
-occursVar k (Let ty def scope) = occursVar k ty || occursVar k def || occursVarScope k scope
-occursVar k (t1 :@ t2) = occursVar k t1 || occursVar k t2
-occursVar _ (Builtin _) = False
-occursVar _ (Var (Free _)) = False
-
-occursVarScope :: Int -> Scope -> Bool
-occursVarScope i (ManualScope _ body) = occursVar (i + 1) body

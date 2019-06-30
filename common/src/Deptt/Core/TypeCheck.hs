@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Deptt.Core.TypeCheck (typeCheck, inferType, inferPi, inferUniverse, builtinType) where
 
-import Deptt.Core.Syntax (Var(..), Term(..), Builtin(..), Scope, Name(..), instantiate)
+import Deptt.Core.Syntax (Var(..), Term(..), Builtin(..), Scope(ManualScope), Name(..), instantiate, isUnusedScope)
 import Deptt.Core.Syntax.Builder (universeTop, lmax, (@@), type_)
 import Deptt.Core.TypeCheck.Builtin (builtinType)
 import Deptt.Core.TypeCheck.Monad (TC, lookupType, typeError, run, openScope)
@@ -25,9 +25,15 @@ inferType (Let def ty scope) = do
   inferType (instantiate def scope)
 inferType (Pi ty scope) = do
   k1 <- inferUniverse ty
-  -- TODO: Is it right that we don't have to close the inferred
-  -- universe? Can't it reference the binder from the pi?
-  k2 <- openScope ty scope $ \opened _unused_close -> inferUniverse opened
+  k2 <- openScope ty scope $ \opened close -> do
+    result <- inferUniverse opened
+    let maybeScope = close <$> result
+    case maybeScope of
+      Nothing -> return Nothing
+      Just sc@(ManualScope _ body) ->
+        if isUnusedScope sc
+        then return $ Just body
+        else return Nothing
   return $ fromMaybe universeTop $ liftA2 (\x y -> type_ (lmax @@ x @@ y)) k1 k2
 inferType (Lambda ty scope) = do
   -- although we do not use the universe of the type, we still have to

@@ -1,4 +1,16 @@
-module Deptt.Core.Syntax (Var(..), Term(..), Scope(..), Builtin(..), Name(..), PrettyName(..), abstract, instantiate, scopePrettyName) where
+module Deptt.Core.Syntax
+  ( Var(..)
+  , Term(..)
+  , Scope(..)
+  , Builtin(..)
+  , Name(..)
+  , PrettyName(..)
+  , abstract
+  , instantiate
+  , scopePrettyName
+  , isUnusedScope
+  )
+where
 
 import Data.Text (Text)
 
@@ -115,3 +127,18 @@ instantiate sub (ManualScope _ body) = go 0 body
 
 scopePrettyName :: Scope -> PrettyName
 scopePrettyName (ManualScope namePretty _) = namePretty
+
+occursVar :: Int -> Term -> Bool
+occursVar k (Var (Bound i)) = k == i
+occursVar k (Pi ty scope) = occursVar k ty || occursVarScope k scope
+occursVar k (Lambda ty scope) = occursVar k ty || occursVarScope k scope
+occursVar k (Let ty def scope) = occursVar k ty || occursVar k def || occursVarScope k scope
+occursVar k (t1 :@ t2) = occursVar k t1 || occursVar k t2
+occursVar _ (Builtin _) = False
+occursVar _ (Var (Free _)) = False
+
+occursVarScope :: Int -> Scope -> Bool
+occursVarScope i (ManualScope _ body) = occursVar (i + 1) body
+
+isUnusedScope :: Scope -> Bool
+isUnusedScope (ManualScope _ body) = not (occursVar 0 body)
