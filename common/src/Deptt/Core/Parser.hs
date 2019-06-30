@@ -190,9 +190,3 @@ parseTerm source = case parse progParser "<interactive>" source of
   Right t -> case convertToDeBruijn t of
     Left (OutOfScope name) -> Left $ "variable out of scope: " <> name
     Right t2 -> Right t2
-
-parseNoFail :: Text -> S.Term
-parseNoFail str =
-  case parseTerm str of
-    Left _ -> error "parsing is assumed not to fail in parseNoFail"
-    Right t -> t
