@@ -18,12 +18,22 @@ tests = testGroup "Tests"
   , normalizationTests ]
 
 typeCheckerTests :: TestTree
-typeCheckerTests = testGroup "Type checker"
-  [ makeTestCase b | b <- [minBound..maxBound] ]
+typeCheckerTests = testGroup "Type checker" $
+  [ makeTestCase b | b <- [minBound..maxBound] ] ++
+  [ testCase "level quantification results in typeomega" $
+      (tc (forall "n" level $ type_ (v "n"))) @=? Right universeTop
+  , testCase "ordinary level quantification" $
+      tc (level +-> level) @=? Right (type_ lzero)
+  ]
   where typeChecks :: Term -> IO ()
         typeChecks t = case typeCheck t of
           Left msg -> assertFailure (T.unpack msg)
           Right _ -> return ()
+
+        tc :: Term -> Either T.Text Term
+        tc tm = run $ do
+          ty <- inferType tm
+          normalize ty
 
         makeTestCase builtin = testCase ("Builtin type " <> show builtin) $
           case builtinType builtin of
