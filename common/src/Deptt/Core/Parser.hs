@@ -105,12 +105,12 @@ builtin "pack" = Just S.Pack
 builtin "fst" = Just S.Fst
 builtin "snd" = Just S.Snd
 
-builtin "or" = Just S.Or
+builtin "sum" = Just S.Sum
 builtin "inl" = Just S.InL
 builtin "inr" = Just S.InR
-builtin "orelim" = Just S.OrElim
+builtin "sumelim" = Just S.SumElim
 
-builtin "and" = Just S.And
+builtin "prod" = Just S.Prod
 builtin "pair" = Just S.Pair
 builtin "proj1" = Just S.Proj1
 builtin "proj2" = Just S.Proj2

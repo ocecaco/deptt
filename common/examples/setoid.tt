@@ -1,31 +1,23 @@
-let lone : level =
-lsucc lzero in
+let lone : level = lsucc lzero
 
-let type0 : type lone =
-type lzero in
+and type0 : type lone = type lzero
 
-let type1 : type (lsucc lone) =
-type lone in
+and type1 : type (lsucc lone) = type lone
 
-let binaryrelation : type0 -> type lone =
-fun A : type0 => A -> A -> type0 in
+and binaryrelation (A : type0) : type1 = A -> A -> type0
 
-let reflexive : forall (A : type0) (rel : binaryrelation A), type0 =
-fun (A : type0) (rel : binaryrelation A) => forall x : A, rel x x in
+and reflexive (A : type0) (rel : binaryrelation A) : type0 = forall x : A, rel x x
 
-let symmetric : forall (A : type0) (rel : binaryrelation A), type0 =
-fun (A: type0) (rel : binaryrelation A) => forall x y : A, rel x y -> rel y x in
+and symmetric (A : type0) (rel : binaryrelation A) : type0 = forall x y : A, rel x y -> rel y x
 
-let transitive : forall (A : type0) (rel : binaryrelation A), type0 =
-fun (A : type0) (rel : binaryrelation A) => forall x y z : A, rel x y -> rel y z -> rel x z in
+and transitive (A : type0) (rel : binaryrelation A) : type0 = forall x y z : A, rel x y -> rel y z -> rel x z
 
-let equivrelation : forall (A : type0) (rel : binaryrelation A), type0 =
-fun (A : type0) (rel : binaryrelation A) => and lzero lzero (reflexive A rel) (and lzero lzero (symmetric A rel) (transitive A rel)) in
+and equivrelation (A : type0) (rel : binaryrelation A) : type0 = prod lzero lzero (reflexive A rel) (prod lzero lzero (symmetric A rel) (transitive A rel))
 
-let setoid : type1 =
-ex lone lone type0 (fun A : type0 => ex lone lzero (binaryrelation A) (fun rel : binaryrelation A => equivrelation A rel)) in
+and setoid : type1 = ex lone lone type0 (fun A : type0 => ex lone lzero (binaryrelation A) (fun rel : binaryrelation A => equivrelation A rel))
 
-let relationby : forall (A B : type0) (f : A -> B), binaryrelation A =
-fun (A B : type0) (f : A -> B) (x y : A) => eq lzero B (f x) (f y) in
+and relationby (A B : type0) (f : A -> B) : binaryrelation A = fun (x y : A) => eq lzero B (f x) (f y)
+
+in
 
 unit

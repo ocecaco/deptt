@@ -18,7 +18,7 @@ inferType (Var (Free name)) = lookupType (internalName name)
 inferType (Builtin b) = case builtinType b of
   Nothing -> typeError "attempt to take type of typeomega"
   Just ty -> return ty
-inferType (Let def ty scope) = do
+inferType (Let ty def scope) = do
   _univ <- inferUniverse ty
   tydef <- inferType def
   checkEqual ty tydef def

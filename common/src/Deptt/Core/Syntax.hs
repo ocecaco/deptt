@@ -65,12 +65,12 @@ data Builtin = Nat
              | Fst
              | Snd
 
-             | Or
+             | Sum
              | InL
              | InR
-             | OrElim
+             | SumElim
 
-             | And
+             | Prod
              | Pair
              | Proj1
              | Proj2

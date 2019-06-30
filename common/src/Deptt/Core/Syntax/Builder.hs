@@ -21,11 +21,11 @@ module Deptt.Core.Syntax.Builder
   , pack
   , fst_
   , snd_
-  , or_
+  , sum_
   , inl
   , inr
-  , orelim
-  , and_
+  , sumelim
+  , prod
   , pair
   , proj1
   , proj2
@@ -96,8 +96,8 @@ fst_ = Builtin Fst
 snd_ :: Term
 snd_ = Builtin Snd
 
-or_ :: Term
-or_ = Builtin Or
+sum_ :: Term
+sum_ = Builtin Sum
 
 inl :: Term
 inl = Builtin InL
@@ -105,11 +105,11 @@ inl = Builtin InL
 inr :: Term
 inr = Builtin InR
 
-orelim :: Term
-orelim = Builtin OrElim
+sumelim :: Term
+sumelim = Builtin SumElim
 
-and_ :: Term
-and_ = Builtin And
+prod :: Term
+prod = Builtin Prod
 
 pair :: Term
 pair = Builtin Pair

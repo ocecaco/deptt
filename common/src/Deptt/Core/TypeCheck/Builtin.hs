@@ -40,15 +40,15 @@ builtinType Pack = Just $ forlvl "lvl1" $ forlvl "lvl2" $ forall "A" (type_ lvl1
 builtinType Fst = Just $ forlvl "lvl1" $ forlvl "lvl2" $ forall "A" (type_ lvl1) (forall "P" (v "A" +-> type_ lvl2) (ex @@ lvl1 @@ lvl2 @@ v "A" @@ v "P" +-> v "A"))
 builtinType Snd = Just $ forlvl "lvl1" $ forlvl "lvl2" $ forall "A" (type_ lvl1) (forall "P" (v "A" +-> type_ lvl2) (forall "H" (ex @@ lvl1 @@ lvl2 @@ v "A" @@ v "P") (v "P" @@ (fst_ @@ lvl1 @@ lvl2 @@ v "A" @@ v "P" @@ v "H"))))
 
-builtinType Or = Just $ forlvl "lvl1" $ forlvl "lvl2" $ type_ lvl1 +-> type_ lvl2 +-> type_ (lmax @@ lvl1 @@ lvl2)
-builtinType InL = Just $ forlvl "lvl1" $ forlvl "lvl2" $ forall "A" (type_ lvl1) (forall "B" (type_ lvl2) (v "A" +-> or_ @@ lvl1 @@ lvl2 @@ v "A" @@ v "B"))
-builtinType InR = Just $ forlvl "lvl1" $ forlvl "lvl2" $ forall "A" (type_ lvl1) (forall "B" (type_ lvl2) (v "B" +-> or_ @@ lvl1 @@ lvl2 @@ v "A" @@ v "B"))
-builtinType OrElim = Just $ forlvl "lvl1" $ forlvl "lvl2" $ forlvl "lvl3" $ forall "A" (type_ lvl1) $ forall "B" (type_ lvl2) $ forall "P" (or_ @@ lvl1 @@ lvl2 @@ v "A" @@ v "B" +-> type_ lvl3) $ (forall "a" (v "A") $ v "P" @@ (inl @@ lvl1 @@ lvl2 @@ v "A" @@ v "B" @@ v "a")) +-> (forall "b" (v "B") (v "P" @@ (inr @@ lvl1 @@ lvl2 @@ v "A" @@ v "B" @@ v "b"))) +-> forall "s" (or_ @@ lvl1 @@ lvl2 @@ v "A" @@ v "B") (v "P" @@ v "s")
+builtinType Sum = Just $ forlvl "lvl1" $ forlvl "lvl2" $ type_ lvl1 +-> type_ lvl2 +-> type_ (lmax @@ lvl1 @@ lvl2)
+builtinType InL = Just $ forlvl "lvl1" $ forlvl "lvl2" $ forall "A" (type_ lvl1) (forall "B" (type_ lvl2) (v "A" +-> sum_ @@ lvl1 @@ lvl2 @@ v "A" @@ v "B"))
+builtinType InR = Just $ forlvl "lvl1" $ forlvl "lvl2" $ forall "A" (type_ lvl1) (forall "B" (type_ lvl2) (v "B" +-> sum_ @@ lvl1 @@ lvl2 @@ v "A" @@ v "B"))
+builtinType SumElim = Just $ forlvl "lvl1" $ forlvl "lvl2" $ forlvl "lvl3" $ forall "A" (type_ lvl1) $ forall "B" (type_ lvl2) $ forall "P" (sum_ @@ lvl1 @@ lvl2 @@ v "A" @@ v "B" +-> type_ lvl3) $ (forall "a" (v "A") $ v "P" @@ (inl @@ lvl1 @@ lvl2 @@ v "A" @@ v "B" @@ v "a")) +-> (forall "b" (v "B") (v "P" @@ (inr @@ lvl1 @@ lvl2 @@ v "A" @@ v "B" @@ v "b"))) +-> forall "s" (sum_ @@ lvl1 @@ lvl2 @@ v "A" @@ v "B") (v "P" @@ v "s")
 
-builtinType And = Just $ forlvl "lvl1" $ forlvl "lvl2" $ type_ lvl1 +-> type_ lvl2 +-> type_ (lmax @@ lvl1 @@ lvl2)
-builtinType Pair = Just $ forlvl "lvl1" $ forlvl "lvl2" $ forall "A" (type_ lvl1) (forall "B" (type_ lvl2) (v "A" +-> v "B" +-> and_ @@ lvl1 @@ lvl2 @@ v "A" @@ v "B"))
-builtinType Proj1 = Just $ forlvl "lvl1" $ forlvl "lvl2" $ forall "A" (type_ lvl1) (forall "B" (type_ lvl2) (and_ @@ lvl1 @@ lvl2 @@ v "A" @@ v "B" +-> v "A"))
-builtinType Proj2 = Just $ forlvl "lvl1" $ forlvl "lvl2" $ forall "A" (type_ lvl1) (forall "B" (type_ lvl2) (and_ @@ lvl1 @@ lvl2 @@ v "A" @@ v "B" +-> v "B"))
+builtinType Prod = Just $ forlvl "lvl1" $ forlvl "lvl2" $ type_ lvl1 +-> type_ lvl2 +-> type_ (lmax @@ lvl1 @@ lvl2)
+builtinType Pair = Just $ forlvl "lvl1" $ forlvl "lvl2" $ forall "A" (type_ lvl1) (forall "B" (type_ lvl2) (v "A" +-> v "B" +-> prod @@ lvl1 @@ lvl2 @@ v "A" @@ v "B"))
+builtinType Proj1 = Just $ forlvl "lvl1" $ forlvl "lvl2" $ forall "A" (type_ lvl1) (forall "B" (type_ lvl2) (prod @@ lvl1 @@ lvl2 @@ v "A" @@ v "B" +-> v "A"))
+builtinType Proj2 = Just $ forlvl "lvl1" $ forlvl "lvl2" $ forall "A" (type_ lvl1) (forall "B" (type_ lvl2) (prod @@ lvl1 @@ lvl2 @@ v "A" @@ v "B" +-> v "B"))
 
 builtinType Unit = Just $ type_ lzero
 builtinType Tt = Just unit

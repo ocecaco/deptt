@@ -48,10 +48,10 @@ normalizationTests = testGroup "Normalization"
       (fst_ @@ lzero @@ lzero @@ nat @@ fun "p" nat nat @@ (pack @@ lzero @@ lzero @@ nat @@ fun "p" nat nat @@ zero @@ (succ_ @@ zero))) `normalizesTo` zero
   , testCase "snd" $
       (snd_ @@ lzero @@ lzero @@ nat @@ fun "p" nat nat @@ (pack @@ lzero @@ lzero @@ nat @@ fun "p" nat nat @@ zero @@ (succ_ @@ zero))) `normalizesTo` (succ_ @@ zero)
-  , testCase "orelim left" $
-      (orelim @@ lzero @@ lzero @@ lzero @@ nat @@ nat @@ fun "p" (or_ @@ lzero @@ lzero @@ nat @@ nat) nat @@ fun "x" nat (v "x") @@ fun "x" nat (succ_ @@ v "x") @@ (inl @@ lzero @@ lzero @@ nat @@ nat @@ zero)) `normalizesTo` zero
-  , testCase "orelim right" $
-      (orelim @@ lzero @@ lzero @@ lzero @@ nat @@ nat @@ fun "p" (or_ @@ lzero @@ lzero @@ nat @@ nat) nat @@ fun "x" nat (v "x") @@ fun "x" nat (succ_ @@ v "x") @@ (inr @@ lzero @@ lzero @@ nat @@ nat @@ zero)) `normalizesTo` (succ_ @@ zero)
+  , testCase "sumelim left" $
+      (sumelim @@ lzero @@ lzero @@ lzero @@ nat @@ nat @@ fun "p" (sum_ @@ lzero @@ lzero @@ nat @@ nat) nat @@ fun "x" nat (v "x") @@ fun "x" nat (succ_ @@ v "x") @@ (inl @@ lzero @@ lzero @@ nat @@ nat @@ zero)) `normalizesTo` zero
+  , testCase "sumelim right" $
+      (sumelim @@ lzero @@ lzero @@ lzero @@ nat @@ nat @@ fun "p" (sum_ @@ lzero @@ lzero @@ nat @@ nat) nat @@ fun "x" nat (v "x") @@ fun "x" nat (succ_ @@ v "x") @@ (inr @@ lzero @@ lzero @@ nat @@ nat @@ zero)) `normalizesTo` (succ_ @@ zero)
   , testCase "eqelim" $
       (eqelim @@ lzero @@ lzero @@ nat @@ zero @@ fun "q" nat (eq @@ lzero @@ nat @@ v "q" @@ zero) @@ (refl @@ lzero @@ nat @@ zero) @@ zero @@ (refl @@ lzero @@ nat @@ zero)) `normalizesTo` (refl @@ lzero @@ nat @@ zero)
   , testCase "proj1" $
