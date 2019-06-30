@@ -42,6 +42,12 @@ inferType (Lambda ty scope) = do
   tybody <- openScope ty scope $ \opened close -> close <$> inferType opened
   return (Pi ty tybody)
 
+inferType (Annotate term tyexpect) = do
+  _univ <- inferUniverse tyexpect
+  tyactual <- inferType term
+  checkEqual tyexpect tyactual term
+  return tyexpect
+
 -- here, we check if the type of the argument matches the type
 -- expected by the function. the type of the result is then obtained by
 -- substituting the argument term into the pi-type.

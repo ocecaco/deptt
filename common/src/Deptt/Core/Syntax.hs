@@ -36,6 +36,7 @@ data Term = Var Var
           | Lambda Term Scope
           | Let Term Term Scope
           | Term :@ Term
+          | Annotate Term Term
 
           | Builtin Builtin
           deriving (Eq, Ord, Show)
@@ -103,6 +104,7 @@ abstract name namePretty fullTerm = ManualScope namePretty (go 0 fullTerm)
         go i (Pi ty scope) = Pi (go i ty) (goScope i scope)
         go i (Lambda ty scope) = Lambda (go i ty) (goScope i scope)
         go i (Let def ty scope) = Let (go i def) (go i ty) (goScope i scope)
+        go i (Annotate term ty) = Annotate (go i term) (go i ty)
 
         goScope :: Int -> Scope -> Scope
         goScope i (ManualScope pretty body) = ManualScope pretty (go (i + 1) body)
@@ -121,6 +123,7 @@ instantiate sub (ManualScope _ body) = go 0 body
         go i (Lambda ty scope) = Lambda (go i ty) (goScope i scope)
         go i (Pi ty scope) = Pi (go i ty) (goScope i scope)
         go i (Let def ty scope) = Let (go i def) (go i ty) (goScope i scope)
+        go i (Annotate term ty) = Annotate (go i term) (go i ty)
 
         goScope :: Int -> Scope -> Scope
         goScope i (ManualScope pretty inner) = ManualScope pretty (go (i + 1) inner)
@@ -134,6 +137,7 @@ occursVar k (Pi ty scope) = occursVar k ty || occursVarScope k scope
 occursVar k (Lambda ty scope) = occursVar k ty || occursVarScope k scope
 occursVar k (Let ty def scope) = occursVar k ty || occursVar k def || occursVarScope k scope
 occursVar k (t1 :@ t2) = occursVar k t1 || occursVar k t2
+occursVar k (Annotate term ty) = occursVar k term || occursVar k ty
 occursVar _ (Builtin _) = False
 occursVar _ (Var (Free _)) = False
 

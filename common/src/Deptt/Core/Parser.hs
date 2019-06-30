@@ -17,6 +17,7 @@ data Term = Var Text
           | Lambda Term Scope
           | Let Term Term Scope
           | App Term Term
+          | Annotate Term Term
           | Builtin S.Builtin
 
 data Scope = Scope Text Term
@@ -72,7 +73,8 @@ progParser = between sc eof term
 term :: Parser Term
 term = makeExprParser term'
   [ [ InfixL (App <$ sc) ]
-  , [ InfixR (arrow <$ symbol "->") ] ]
+  , [ InfixR (arrow <$ symbol "->") ]
+  , [ InfixN (Annotate <$ symbol ":") ] ]
   where arrow :: Term -> Term -> Term
         arrow t1 t2 = Pi t1 (Scope "_" t2)
 
@@ -179,6 +181,7 @@ convertToDeBruijn = go []
         go env (Lambda ty rawScope) = S.Lambda <$> go env ty <*> goScope env rawScope
         go env (Let def ty rawScope) = S.Let <$> go env def <*> go env ty <*> goScope env rawScope
         go env (App t1 t2) = (S.:@) <$> go env t1 <*> go env t2
+        go env (Annotate tm ty) = S.Annotate <$> go env tm <*> go env ty
         go _ (Builtin b) = pure (S.Builtin b)
 
         goScope :: [Text] -> Scope -> Either ScopeError S.Scope

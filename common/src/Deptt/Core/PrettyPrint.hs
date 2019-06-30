@@ -86,11 +86,13 @@ render (Var (Bound i)) = pretty <$> lookupName i
 render (Var (Free n)) = return (pretty (unwrapPrettyName (prettyName n)))
 render (Builtin b) = return (renderBuiltin b)
 
+render (Annotate term ty) = infl 1 (pure " : ") (render term) (render ty)
+
 render (Pi ty s) = do
   (occ, prettyname, prettybody) <- renderScope s
   let prettyty = render ty
   if not occ
-  then infr 1 (pure " -> ") prettyty prettybody
+  then infr 2 (pure " -> ") prettyty prettybody
   else atLevel 0 $ do
     prettyname' <- prettyname
     prettyty' <- prettyty
@@ -113,7 +115,7 @@ render (Let ty def s) = atLevel 0 $ do
   prettybody' <- prettybody
   return $ "let" <+> prettyname' <+> ":" <+> prettyty' <+> "=" <+> rdef <+> "in" <+> prettybody'
 
-render (t1 :@ t2) = infl 2 (pure space) (render t1) (render t2)
+render (t1 :@ t2) = infl 3 (pure space) (render t1) (render t2)
 
 renderBuiltin :: Builtin -> Doc a
 renderBuiltin Nat = "nat"
@@ -155,7 +157,7 @@ renderScope :: Scope -> PP (Bool, PP (Doc a), PP (Doc a))
 renderScope scope@(ManualScope name body) = do
   let prettyname = unwrapPrettyName name
   let prettybody = withContext prettyname (render body)
-  let occ = isUnusedScope scope
+  let occ = not (isUnusedScope scope)
   return (occ, pure (pretty prettyname), prettybody)
 
 prettyPrint :: Term -> Text
