@@ -26,7 +26,7 @@ normalizeBuiltin _ = Nothing
 normalize :: Term -> TC Term
 normalize tm@(Var _) = return tm
 normalize tm@(Builtin _) = return tm
-normalize (Let def _ scope) = normalize =<< (instantiate <$> normalize def <*> pure scope)
+normalize (Let _ def scope) = normalize =<< (instantiate <$> normalize def <*> pure scope)
 normalize (Annotate term _) = normalize term
 normalize (e1old :@ e2old) = do
   e1norm <- normalize e1old
