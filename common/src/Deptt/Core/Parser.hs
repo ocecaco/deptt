@@ -182,7 +182,7 @@ convertToDeBruijn = go []
         go _ (Builtin b) = pure (S.Builtin b)
 
         goScope :: [Text] -> Scope -> Either ScopeError S.Scope
-        goScope env (Scope name body) = S.ManualScope <$> go (name:env) body
+        goScope env (Scope name body) = S.ManualScope (S.PrettyName name) <$> go (name:env) body
 
 parseTerm :: Text -> Either Text S.Term
 parseTerm source = case parse progParser "<interactive>" source of

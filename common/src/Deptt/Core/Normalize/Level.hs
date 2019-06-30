@@ -13,10 +13,9 @@ data ULevel = UZero
 
 data NPlusLevel = NConst Int
                 | NPlus Int Term
-                deriving (Show, Eq, Ord)
+                deriving (Eq, Ord)
 
 data NLevel = NMax [NPlusLevel]
-            deriving (Show)
 
 translateLevel :: Term -> ULevel
 translateLevel (Builtin LevelZero) = UZero

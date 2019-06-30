@@ -4,7 +4,7 @@ module Deptt.Core.Normalize (normalizeTerm) where
 
 import Deptt.Util.VarSupply (VarSupplyT, fresh, runVarSupplyT)
 import Control.Monad.Identity (Identity, runIdentity)
-import Deptt.Core.Syntax (Var(..), Term(..), Builtin(..), Scope, abstract, instantiate)
+import Deptt.Core.Syntax (Var(..), Term(..), Builtin(..), Scope, Name(..), scopePrettyName, abstract, instantiate)
 import Deptt.Core.Syntax.Builder
 import Deptt.Core.Normalize.Level (normalizeLevel)
 import Data.Text (Text)
@@ -54,9 +54,10 @@ normalize (Lambda ty scope) = Lambda <$> normalize ty <*> normalizeScope scope
 normalizeScope :: Scope -> Norm Scope
 normalizeScope scope = do
   f <- freshVar
-  let opened = instantiate (Var (Free f)) scope
+  let namePretty = scopePrettyName scope
+  let opened = instantiate (Var (Free (Name f namePretty))) scope
   normed <- normalize opened
-  return $ abstract f normed
+  return $ abstract f namePretty normed
 
 normalizeTerm :: Term -> Term
 normalizeTerm tm = runIdentity (runVarSupplyT (runNorm (normalize tm)))

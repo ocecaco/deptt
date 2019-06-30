@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Deptt.Core.TypeCheck (typeCheck, runWithContext, inferType, inferPi, inferUniverse, Context, TC, builtinType) where
 
-import Deptt.Core.Syntax (Var(..), Term(..), Builtin(..), Scope, abstract, instantiate)
+import Deptt.Core.Syntax (Var(..), Term(..), Builtin(..), Scope, Name(..), scopePrettyName, abstract, instantiate)
 import Deptt.Core.Syntax.Builder (universeTop, lmax, (@@), type_)
 import Deptt.Core.TypeCheck.Builtin (builtinType)
 import Deptt.Core.Normalize (normalizeTerm)
@@ -42,7 +42,7 @@ lookupType name = TC $ do
 
 inferType :: Term -> TC Term
 inferType (Var (Bound _)) = error "type checker encountered bound var"
-inferType (Var (Free name)) = lookupType name
+inferType (Var (Free name)) = lookupType (internalName name)
 inferType (Builtin b) = case builtinType b of
   Nothing -> typeError "attempt to take type of Type*"
   Just ty -> return ty
@@ -54,7 +54,8 @@ inferType (Let def ty scope) = do
 inferType (Pi ty scope) = do
   k1 <- inferUniverse ty
   name <- freshVar
-  let opened = instantiate (Var (Free name)) scope
+  let namePretty = scopePrettyName scope
+  let opened = instantiate (Var (Free (Name name namePretty))) scope
   k2 <- withContext name ty (inferUniverse opened)
   return $ fromMaybe universeTop $ liftA2 (\x y -> type_ (lmax @@ x @@ y)) k1 k2
 inferType (Lambda ty scope) = do
@@ -62,9 +63,10 @@ inferType (Lambda ty scope) = do
   -- make sure it is well-typed itself
   _univ <- inferUniverse ty
   name <- freshVar
-  let opened = instantiate (Var (Free name)) scope
+  let namePretty = scopePrettyName scope
+  let opened = instantiate (Var (Free (Name name namePretty))) scope
   tybody <- withContext name ty (inferType opened)
-  return (Pi ty (abstract name tybody))
+  return (Pi ty (abstract name namePretty tybody))
 
 -- here, we check if the type of the argument matches the type
 -- expected by the function. the type of the result is then obtained by
@@ -85,12 +87,12 @@ inferUniverse tm = do
   case norm of
     Builtin Universe :@ lvl -> return (Just lvl)
     Builtin UniverseTop -> return Nothing
-    _ -> typeError $ "expected universe, got " <> T.pack (show norm)
+    _ -> typeError "expected universe"
 
 checkEqual :: Term -> Term -> TC ()
 checkEqual e1 e2
   | norme1 == norme2 = return ()
-  | otherwise = typeError $ "type mismatch: " <> T.pack (show norme1) <> " and " <> T.pack (show norme2)
+  | otherwise = typeError "type mismatch"
   where norme1 = normalizeTerm e1
         norme2 = normalizeTerm e2
 

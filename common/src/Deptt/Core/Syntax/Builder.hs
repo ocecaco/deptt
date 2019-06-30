@@ -42,23 +42,23 @@ module Deptt.Core.Syntax.Builder
   )
 where
 
-import Deptt.Core.Syntax (Term(..), Var(..), Builtin(..), abstract)
+import Deptt.Core.Syntax (Term(..), Var(..), Builtin(..), PrettyName(..), Name(..), abstract)
 import Data.Text (Text)
 
 fun :: Text -> Term -> Term -> Term
-fun name ty body = Lambda ty (abstract name body)
+fun name ty body = Lambda ty (abstract name (PrettyName name) body)
 
 forall :: Text -> Term -> Term -> Term
-forall name ty body = Pi ty (abstract name body)
+forall name ty body = Pi ty (abstract name (PrettyName name) body)
 
 (+->) :: Term -> Term -> Term
-t1 +-> t2 = Pi t1 (abstract "__unused__" t2)
+t1 +-> t2 = Pi t1 (abstract "__unused__" (PrettyName "__unused__") t2)
 
 type_ :: Term -> Term
 type_ lvl = Builtin Universe @@ lvl
 
 v :: Text -> Term
-v name = Var (Free name)
+v name = Var (Free (Name name (PrettyName name)))
 
 (@@) :: Term -> Term -> Term
 t1 @@ t2 = t1 :@ t2
