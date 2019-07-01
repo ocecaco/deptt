@@ -1,36 +1,14 @@
-let plus : nat -> nat -> nat =
-
-fun n m : nat =>
-natelim
-(fun p : nat => nat)
-m
-(fun p : nat => succ)
-n
+let plus (n m : nat) : nat = natelim lzero (fun p : nat => nat) m (fun p : nat => succ) n
 
 in
 
-{- To prove:
-
-   n + 0 = n
-
-   or in other words:
-
-   forall n : nat, eq nat (plus n zero) n
--}
-
--- we use induction
-natelim
-
--- the proposition we wish to show using induction
-(fun q : nat => eq nat (plus q zero) q)
-
--- base case: 0 + 0 = 0 or equivalently eq nat (plus zero zero) zero
-(refl nat zero)
-
--- inductive case:
+natelim lzero
+(fun q : nat => eq lzero nat (plus q zero) q)
+(refl lzero nat zero)
 (
 fun k : nat =>
-fun IH : eq nat (plus k zero) k =>
-
-eqelim nat (plus k zero) (fun t : nat => eq nat (plus (succ k) zero) (succ t)) (refl nat (plus (succ k) zero)) k IH
+fun IH : eq lzero nat (plus k zero) k =>
+eqelim lzero lzero nat (plus k zero) (fun t : nat => eq lzero nat (plus (succ k) zero) (succ t)) (refl lzero nat (plus (succ k) zero)) k IH
 )
+
+: forall n : nat, eq lzero nat (plus n zero) n
