@@ -1,0 +1,31 @@
+fun R : type lzero =>
+fun plus : R -> R -> R =>
+fun times : R -> R -> R =>
+fun plusassoc : forall a b c : R, eq lzero R (plus a (plus b c)) (plus (plus a b) c) =>
+fun timesassoc : forall a b c : R, eq lzero R (times a (times b c)) (times (times a b) c) =>
+fun pluscomm : forall a b : R, eq lzero R (plus a b) (plus b a) =>
+fun timescomm : forall a b : R, eq lzero R (times a b) (times b a) =>
+fun r0 : R =>
+fun r1 : R =>
+fun zeronotone : eq lzero R r0 r1 -> void =>
+fun plusident : forall a : R, eq lzero R (plus a r0) a =>
+fun timesident : forall a : R, eq lzero R (times a r1) a =>
+fun neg : R -> R =>
+fun rec : forall a : R, (eq lzero R a r0 -> void) -> R =>
+fun plusneg : forall a : R, eq lzero R (plus a (neg a)) r0 =>
+fun timesrec : forall (a : R) (nonzero : eq lzero R a r0 -> void), eq lzero R (times a (rec a nonzero)) r1 =>
+fun distrib : forall (a b c : R), eq lzero R (times a (plus b c)) (plus (times a b) (times a c)) =>
+fun leq : R -> R -> type lzero =>
+fun leqantisymm : forall (a b : R), leq a b -> leq b a -> eq lzero R a b =>
+fun leqtrans : forall (a b c : R), leq a b -> leq b c -> leq a c =>
+fun leqtotal : forall (a b : R), sum lzero lzero (leq a b) (leq b a) =>
+fun leqplus : forall (a b c : R), leq a b -> leq (plus a c) (plus b c) =>
+fun leqtimes : forall (a b : R), leq r0 a -> leq r0 b -> leq r0 (times a b) =>
+
+let bounds (m : R) (S : R -> type lzero) : type lzero = forall x : R, S x -> leq x m in
+let nonempty (S : R -> type lzero) : type lzero = ex lzero lzero R S in
+let bounded (S : R -> type lzero) : type lzero = ex lzero lzero R (fun m : R => bounds m S) in
+
+let supremum (sup : R) (S : R -> type lzero) : type lzero = prod lzero lzero (bounds sup S) (forall x : R, bounds x S -> leq x sup) in
+fun dedekind : forall (S : R -> type lzero), bounded S -> nonempty S -> ex lzero lzero R (fun sup : R => supremum sup S) =>
+tt
