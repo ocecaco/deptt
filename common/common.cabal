@@ -26,6 +26,7 @@ library
                      , Deptt.Util.VarSupply
                      , Deptt.Core.Parser
                      , Deptt.Core.PrettyPrint
+  other-modules:       Deptt.Core.Lexer
   other-extensions:    GeneralizedNewtypeDeriving
   build-depends:       base
                      , mtl
@@ -34,6 +35,9 @@ library
                      , containers
                      , prettyprinter
                      , text
+                     , array
+  build-tool-depends: alex:alex
+                    , happy:happy
   hs-source-dirs:      src
   ghc-options:         -Wall
   default-language:    Haskell2010
